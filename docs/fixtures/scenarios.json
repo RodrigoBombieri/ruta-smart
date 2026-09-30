@@ -1,0 +1,131 @@
+{
+  "synthetic": true,
+  "description": "Geometría artificial WGS84: no representa una carretera ni alerta oficial.",
+  "departureAt": "2030-01-01T10:00:00Z",
+  "route": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        -60,
+        -33
+      ],
+      [
+        -59.9,
+        -33
+      ],
+      [
+        -59.8,
+        -33
+      ]
+    ],
+    "edgeDurationsSeconds": [
+      1800,
+      1800
+    ]
+  },
+  "etaUncertainty": {
+    "minMinutes": 15,
+    "elapsedFraction": 0.2
+  },
+  "features": {
+    "intersecting": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -59.96,
+            -33.02
+          ],
+          [
+            -59.94,
+            -33.02
+          ],
+          [
+            -59.94,
+            -32.98
+          ],
+          [
+            -59.96,
+            -32.98
+          ],
+          [
+            -59.96,
+            -33.02
+          ]
+        ]
+      ]
+    },
+    "nearNotIntersecting": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -59.96,
+            -32.99
+          ],
+          [
+            -59.94,
+            -32.99
+          ],
+          [
+            -59.94,
+            -32.98
+          ],
+          [
+            -59.96,
+            -32.98
+          ],
+          [
+            -59.96,
+            -32.99
+          ]
+        ]
+      ]
+    },
+    "stationNear": {
+      "type": "Point",
+      "coordinates": [
+        -59.9,
+        -33.001
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "T03",
+      "polygon": "nearNotIntersecting",
+      "expectedSpatialMatch": false
+    },
+    {
+      "id": "T04",
+      "polygon": "intersecting",
+      "validFrom": "2030-01-01T09:00:00Z",
+      "validTo": "2030-01-01T12:00:00Z",
+      "expectedSpatialMatch": true,
+      "expectedTemporalMatch": true
+    },
+    {
+      "id": "T05",
+      "polygon": "intersecting",
+      "validFrom": "2030-01-01T08:00:00Z",
+      "validTo": "2030-01-01T09:00:00Z",
+      "expectedTemporalMatch": false
+    },
+    {
+      "id": "T13",
+      "distanceKm": 1200,
+      "consumptionLPer100Km": 7.5,
+      "tankLitres": 47,
+      "initialLitres": 30,
+      "reserveLitres": 5,
+      "syntheticPriceArsPerLitre": 1500,
+      "expected": {
+        "consumptionLitres": 90,
+        "usableInitialRangeKm": 333.3333333333,
+        "minPurchaseLitres": 65,
+        "consumptionCostArs": 135000,
+        "minPurchaseCostArs": 97500
+      }
+    }
+  ]
+}
