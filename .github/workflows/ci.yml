@@ -1,0 +1,44 @@
+name: Validate RutaSmart
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: rutasmart_test
+          POSTGRES_USER: rutasmart
+          POSTGRES_PASSWORD: isolated-ci-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rutasmart -d rutasmart_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: python scripts/export-openapi.py --check
+      - run: python scripts/check-docs.py
+      - run: dotnet test RutaSmart.slnx --configuration Release
+        env:
+          RUTASMART_TEST_DB: Host=localhost;Database=rutasmart_test;Username=rutasmart;Password=isolated-ci-only
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/rutasmart
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.2'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --release --dart-define=API_URL=

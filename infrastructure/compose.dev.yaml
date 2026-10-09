@@ -1,0 +1,7 @@
+services:
+  db:
+    ports: ["127.0.0.1:55438:5432"]
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Routing__Provider: osrm_public

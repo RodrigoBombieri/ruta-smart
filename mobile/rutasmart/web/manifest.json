@@ -1,0 +1,19 @@
+{
+    "name": "RutaSmart Argentina",
+    "short_name": "RutaSmart",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#f2f4ee",
+    "theme_color": "#126356",
+    "description": "Tu recorrido, el tiempo y el combustible, antes de salir.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "brand.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}

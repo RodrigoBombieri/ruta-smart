@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RutaSmart.Api/RutaSmart.Api.csproj" />
+    <Project Path="src/RutaSmart.Core/RutaSmart.Core.csproj" />
+    <Project Path="src/RutaSmart.Infrastructure/RutaSmart.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RutaSmart.Tests/RutaSmart.Tests.csproj" />
+  </Folder>
+</Solution>

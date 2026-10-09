@@ -1,104 +1,43 @@
-# Arquitectura técnica
-
-**Monolito modular**, API REST y trabajos de ingesta del mismo código. PostgreSQL + PostGIS como único almacenamiento necesario inicialmente. Flutter para cliente. .NET 10 LTS según [política oficial vigente](https://dotnet.microsoft.com/en-us/platform/support/policy), con soporte publicado hasta noviembre de 2028; fijar el parche soportado al comenzar. La versión concreta de Flutter/PostgreSQL/PostGIS se fijará en la PoC según compatibilidad, sin usar prereleases por defecto.
-
-## Módulos
-
-| Módulo | Responsabilidad | No debe hacer |
-|---|---|---|
-| Trips | Casos de uso, snapshots y guardado | Interpretar payloads de proveedores |
-| Routing | Adaptar ruta y capacidades | Calcular grafo propio |
-| Geography | Localidades y matching GIS | Convertirse en catálogo mundial |
-| RoadConditions | Normalización y afectaciones viales | Inferir cortes a partir de lluvia |
-| Weather | Alertas, pronóstico y matching temporal | Diagnosticar certeza meteorológica |
-| Fuel | Consumo, costos y plan alcanzable | Garantizar stock/precio futuro |
-| Assessment | Reglas explicables y cobertura | Acceder directamente a HTTP externo |
-| Identity | Propiedad, sesiones y autorización | Almacenar tracking |
-| Operations | Ingestas, salud, métricas | Exponer secretos al cliente |
-
-Inicialmente proyectos futuros `RutaSmart.Api`, `RutaSmart.Core`, `RutaSmart.Infrastructure`, `RutaSmart.Tests`; módulos por carpetas dentro de ellos. Core no depende de Flutter, EF ni DTO externos. Evitar un proyecto/servicio por entidad. DbContext directo en Infrastructure con consultas concretas; sin repositorio genérico obligatorio, MediatR/CQRS ni Event Sourcing.
-
-## Diagrama de componentes
+# Arquitectura
 
 ```mermaid
-flowchart TD
-    O[Fuentes oficiales y proveedores externos] --> A[Adaptadores por contrato]
-    A --> N[Validación y normalización]
-    N --> DB[(PostgreSQL y PostGIS)]
-    J[Worker del mismo monolito] --> A
-    R[Routing on demand] --> A
-    DB --> D[Servicios de dominio]
-    D --> E[TripAssessmentEngine]
-    E --> API[ASP.NET Core REST API]
-    API --> F[Flutter]
-    F --> NAV[Waze o Google Maps]
-    H[AlertaRío futuro opcional] -.-> A
+flowchart LR
+    UI[Flutter] --> API[API .NET 10]
+    API --> CORE[Validación y motores]
+    API --> ROUTE[OSRM / ORS / GeoRef]
+    JOB[Ingestas SMN y Energía] --> DB[(PostgreSQL + PostGIS)]
+    API --> DB
+    UI --> NAV[Google Maps / Waze]
 ```
 
-Desplegar API y worker como un proceso al principio con `BackgroundService`, locks/leases en PostgreSQL y trabajos durables. Separar proceso worker usando la misma imagen si la ingesta consume recursos o se escala API. No crear microservicios. Un único ejecutor por fuente mediante lease; reinicios recuperan trabajos vencidos.
+| Directorio | Responsabilidad |
+|---|---|
+| `src/RutaSmart.Core` | Modelos, validación, consumo, tiempos, alertas y estaciones |
+| `src/RutaSmart.Infrastructure` | HTTP de proveedores, parsers y almacenamiento |
+| `src/RutaSmart.Api` | Endpoints, propiedad, cuotas y trabajos periódicos |
+| `mobile/rutasmart/lib` | Interfaz, cliente HTTP y guardado local |
+| `infrastructure` | Compose, imagen .NET y migración SQL |
+| `tests` | Dominio, API, PostGIS y navegador |
 
-## Flujo principal
+## Un análisis
 
-```mermaid
-flowchart TD
-    A[Origen, destino, fecha, hora y vehículo] --> B[Validar y resolver puntos]
-    B --> C[Obtener ruta completa]
-    C --> D[Validar alcance y crear versión]
-    D --> E[Corredores y segmentos ordenados]
-    E --> F[Timeline con ventanas ETA]
-    F --> G[Eventos viales y alertas locales]
-    F --> H[Pronóstico por celdas y horas]
-    F --> I[Estaciones, productos y precios]
-    I --> J[Plan de combustible y paradas]
-    J --> K[Recalcular timeline si se aceptan paradas]
-    G --> L[Correlación espacial y temporal]
-    H --> L
-    K --> L
-    L --> M[Reglas y cobertura por dimensión]
-    M --> N[Assessment versionado]
-    N --> O[Tarjetas y mapa Flutter]
-    O --> P[Abrir navegación externa]
-```
+Validar entrada → calcular ruta → estimar horarios y combustible → cruzar alertas → seleccionar estaciones → evaluar cobertura → guardar snapshot.
 
-Las paradas sugeridas no alteran silenciosamente la ruta analizada: el usuario las acepta y se crea una nueva versión. El motor puede simular un plan para explicar autonomía; distingue simulación de itinerario adoptado.
+Cada informe conserva entrada, ruta, versión de reglas, fecha de cálculo y vigencia. Una nueva evaluación incrementa su versión. PostgreSQL guarda sesiones, informes, idempotencia y fuentes; la migración es `infrastructure/db/001-initial.sql`. En desarrollo puede usarse memoria.
 
-## Interfaces justificadas
+## Reglas de cálculo
 
-- `IRoutingProvider`: frontera real entre motor externo y ruta canónica, con capabilities.
-- `IWeatherProvider`: separar métodos/adaptadores de alertas oficiales y pronóstico; no forzar que un proveedor ofrezca ambos.
-- `IRoadConditionProvider`: entrega snapshots/deltas normalizados con cobertura; no una lista sin semántica de completitud.
-- `IFuelPriceProvider`: distingue precio de inventario de estaciones; admite fuentes oficiales o licenciadas, no input privado global.
-- `IGeographicProvider`: búsqueda/normalización externa. GIS interno usa servicios concretos de PostGIS, no una abstracción universal de mapas.
-- `IHydrologyProvider`: contrato documentado como futura extensión; **no implementar interfaz vacía, proyecto ni llamadas ahora**.
+- **Consumo:** km × L/100 km ÷ 100. Compras mínimas: máximo entre cero y consumo + reserva − combustible inicial. Sin precio manual, los costos son nulos.
+- **Tiempo:** duración distribuida proporcionalmente a la distancia, más pausas. La ventana usa ±20% de la conducción acumulada, con mínimo de 15 minutos; no incluye tráfico.
+- **Alertas:** geometría WGS84; intersección por arista y solapamiento con la ventana de paso. Se preservan huecos y entradas repetidas. No se deduce un corte vial de una alerta meteorológica.
+- **Estaciones:** hasta 20 candidatos distribuidos por el recorrido, a menos de 5 km laterales y con producto compatible. Distancia lateral no equivale a desvío por carretera.
+- **Precios:** se conserva fecha y horario declarados. Referencias de más de siete días no se consideran comparables.
+- **Estado:** adverso → precaución → información insuficiente → favorable. Solo puede ser favorable si las dimensiones críticas tienen cobertura suficiente.
 
-Los contratos incluyen `DataAvailability`, timestamps, versiones, atribución y errores tipados. No hay fallback automático a cualquier proveedor si viola licencia o pierde capacidades necesarias.
+Metros y segundos en los contratos; ARS y litros en decimal. `fetchedAt` indica descarga, no actualización del dato.
 
-## Ingesta y consulta
+## Ingesta
 
-Los siguientes intervalos son **políticas internas iniciales**, no frecuencia garantizada de la fuente. Sólo activar polling autorizado.
+SMN cada 5 minutos; Energía cada 6 horas. Un lote inválido conserva el snapshot anterior y su fecha. CAP contempla actualizaciones y cancelaciones. Las frecuencias son políticas de RutaSmart, no garantías de las fuentes.
 
-| Datos | Estrategia | Política inicial / fallo |
-|---|---|---|
-| Carreteras | Ingesta previa versionada | Revisión mensual o nueva edición; snapshot previo con fecha |
-| Estaciones | Ingesta previa | Revisar cambios semanalmente; auditoría de operación separada |
-| Precios | Ingesta previa sólo de fuente habilitada | Intento horario si contrato lo permite; evaluación de antigüedad por fila |
-| Alertas oficiales | Ingesta previa, delta/cancelación | Objetivo 5 min si permitido; vigencia y salud independientes |
-| Vialidad | Ingesta previa | Objetivo 15 min si permitido; nunca prometer esta cadencia al usuario |
-| GeoRef | Búsqueda cacheada / catálogo autorizado | Cache propuesta 30 días; punto confirmado por usuario |
-| Routing | On demand | Cache propuesta 6 h para ruta estática, limitada por licencia; tráfico requiere política distinta |
-| Pronóstico | On demand por celda/ciclo | Cache propuesta 30 min, sin extender validez del pronóstico |
-| Assessment | On demand | Reusar hasta 5 min sólo si versiones/horario/input no cambiaron |
-
-Retries acotados con jitter para timeout/429/5xx, `Retry-After`, ningún retry a errores de validación/autorización. Máximo 2 reintentos en jobs; requests interactivos sujetos al presupuesto global. Circuit breaker propuesto: abrir 60 s después de 5 fallos consecutivos, una prueba half-open; ajustar a tráfico observado. No convertir la prueba en tormenta de reintentos.
-
-Jobs idempotentes con ID de fuente, revisión/hash, staging de importación, validación y publicación atómica. Alerta por payload inesperado, caída brusca de filas o cambios de esquema. Congelar actualización ante corrupción, sin borrar lote anterior. Reprocesamiento manual con auditoría.
-
-## Presupuesto de consultas y latencia
-
-Por análisis: **objetivo <=8 requests HTTP externos, techo 12 incluyendo reintentos**. Propuesta de distribución máxima: 1 routing principal, hasta 4 lotes de pronóstico, hasta 4 consultas de desvíos/matriz, hasta 3 reintentos distribuidos. Localidades se resuelven antes, con su propia cuota. Alertas/vialidad/estaciones vienen de DB, no multiplican llamadas por segmento.
-
-Hasta 32 muestras meteorológicas agrupadas inicialmente; si resolución o ruta requiere más, aplicar cache/lotes o declarar cobertura parcial. No fingir precisión sobre cientos de kilómetros sólo para cumplir límite. Matriz hasta 64 pares facturables por análisis como presupuesto propio inicial; el adaptador aplica además límites del proveedor. Sin presupuesto para validar desvío, entregar estaciones candidatas, no recomendación certificada.
-
-Timeout total propuesto 15 s; objetivo p95 <8 s en beta medida; 3 llamadas externas concurrentes como máximo por análisis y semáforos globales por proveedor. Request coalescing para análisis idénticos, cuotas por sesión y circuitos de costo. No prometer percentiles antes del benchmark.
-
-Redis: diferido. Cache local y PostgreSQL bastan para una instancia. Introducir Redis sólo por evidencia de múltiples réplicas, contención o rate limiting distribuido que PostgreSQL no resuelva dentro del objetivo. Notificaciones: FCM posterior con tokens opt-in, jobs de reevaluación y deduplicación de cambios, sin tracking continuo obligatorio.
+La API está diseñada para **una instancia**. No hay leases ni cuotas distribuidas. Los trabajos de ingesta no consultan ni almacenan tracking de usuarios.

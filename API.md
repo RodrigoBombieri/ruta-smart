@@ -1,41 +1,49 @@
-# REST API propuesta
+# API
 
-[OpenAPI 3.1](docs/openapi.json) es el contrato de diseño de RutaSmart, **no una API pública existente**. Los endpoints aquí definidos son propios y deliberadamente propuestos; no se atribuyen a organismos. No se despliega nada en esta etapa.
+Base: `/api/v1`. JSON en camelCase. [Contrato OpenAPI](docs/openapi.json). Los modelos ejecutables están en `src/RutaSmart.Core/Models.cs`.
 
-## Operaciones
+Regenerar el contrato: `python scripts/export-openapi.py`. CI verifica que sus esquemas y rutas coincidan con el código.
 
-| Método/ruta | Función | Autorización |
+| Método | Ruta | Resultado |
 |---|---|---|
-| POST /api/v1/sessions/anonymous | Sesión temporal y token opaco | Público, rate limited |
-| GET /api/v1/locations/search | Búsqueda de localidades por nombre/provincia | Sesión o cuenta |
-| POST /api/v1/trips/analyze | Crear viaje temporal y primer análisis | Sesión o cuenta |
-| GET /api/v1/trips/{tripId} | Leer snapshot propio | Mismo principal propietario |
-| GET /api/v1/trips | Listar viajes guardados con cursor | Cuenta |
-| PATCH /api/v1/trips/{tripId} | Guardar/desguardar y cambiar nombre | Cuenta propietaria |
-| DELETE /api/v1/trips/{tripId} | Borrar viaje propio | Sesión/cuenta propietaria |
-| POST /api/v1/trips/{tripId}/analyses | Nueva versión con horario/paradas/input corregidos | Mismo propietario |
-| GET/POST /api/v1/vehicles | Listar/crear vehículos | Cuenta |
-| GET/PATCH/DELETE /api/v1/vehicles/{vehicleId} | Consultar/editar/borrar | Cuenta propietaria |
-| GET /api/v1/sources/status | Estado público resumido y alcance | Público con cache |
+| POST | `/sessions/anonymous` | 201: token y vencimiento a 24 horas |
+| GET | `/locations/search?q=Rosario` | Localidades GeoRef |
+| POST | `/trips/analyze` | 201: nuevo informe |
+| GET | `/trips/{id}` | Última versión propia |
+| POST | `/trips/{id}/analyses` | 201: nueva versión |
+| DELETE | `/trips/{id}` | 204: borrado propio |
+| GET | `/sources/status` | Estado y fechas de las fuentes |
+| GET | `/trips` | 403: cuentas no habilitadas |
 
-Auth de cuenta: OIDC authorization code + PKCE con proveedor a elegir; no diseñar endpoints de contraseñas/token propios sin necesidad. Sesión anónima opaca distinta del JWT de identidad. El guardado anónimo es local en Flutter; temporal backend expira. Migración de datos anónimos a cuenta se agrega sólo con transferencia explícita y comprobación de ambos principals; no endpoint público de “reclamar por UUID”.
+`GET /health/live` informa si el proceso responde. No certifica la salud de las fuentes.
 
-Un análisis devuelve conjuntamente ruta, timeline resumido, eventos, clima y combustible: evita rondas redundantes desde Flutter. `matchedEvents` lleva geometrías de evidencia para capas del mapa y `forecastSamples` las variables disponibles con unidades, intervalo, modelo y resolución. Arrays vacíos se interpretan junto a `coverage`, nunca como prueba aislada de ausencia de riesgos. No exponer endpoints que reciban polylines arbitrarias enormes como `/fuel-stations/route`. Si los detalles crecen, paginar por tripId/assessmentVersion, respetando autorización y el snapshot, sin volver a llamar a proveedores.
+## Autorización e idempotencia
 
-## Semántica
+Excepto sesión, fuentes y salud, usar `Authorization: Bearer <token>`. Nunca guardar el token en Git ni logs. Un UUID no permite acceder a recursos de otro propietario.
 
-POST de análisis es síncrono con deadline. 201 crea un snapshot completo o parcial; 503 si no se obtiene ruta utilizable. No devolver 200/favorable al fallar fuentes. `availability` por dimensión acompaña el estado general. Errores Problem Details incluyen código estable y correlationId, nunca secretos ni payload del proveedor.
+Los POST de análisis requieren `Idempotency-Key` de 8–100 caracteres alfanuméricos, guion o guion bajo. Reenviar la misma clave y el mismo cuerpo devuelve el informe existente; cambiar el cuerpo da 409. El hash usa los bytes JSON: conservar también el formato al reintentar.
 
-`Idempotency-Key` requerido para POST de análisis: alcance por propietario/ruta de operación, hash de body, TTL propuesto 24 h. Misma clave y mismo body devuelve resultado original; body distinto da 409. Una respuesta caducada sigue siendo original y debe reanalizarse con nueva clave. No usar cache de evaluación para fingir frescura.
+## Entrada de análisis
 
-Fechas ISO 8601 con offset obligatorio en entrada, zona IANA separada y coherente. Coordenadas como objeto `latitude/longitude` para evitar inversión; geometrías GeoJSON `[lon,lat]`. Metros, segundos, litros y ARS explícitos. Precio `null` no es cero. Enum de procedencia: official, external, user_input; `calculated` y `estimated` como flags separados del origen.
+```json
+{
+  "origin": {"label": "Buenos Aires", "point": {"latitude": -34.6037, "longitude": -58.3816}},
+  "destination": {"label": "Rosario", "point": {"latitude": -32.9468, "longitude": -60.6393}},
+  "departureAt": "2026-10-10T08:00:00-03:00",
+  "timeZone": "America/Argentina/Buenos_Aires",
+  "vehicle": {"name": "Mi auto", "fuelType": "nafta_2", "tankLitres": 47, "consumptionLPer100Km": 7.5},
+  "initialLitres": 30,
+  "reserveLitres": 5,
+  "manualPriceArsPerLitre": null,
+  "pauses": [],
+  "demo": false
+}
+```
 
-Validaciones adicionales al esquema: lat/lon dentro del territorio soportado; ruta íntegra soportada; salida futura dentro del horizonte de planificación propuesto de 30 días (clima puede cubrir menos); origen=destino ⇒ 422 `same_origin_destination`; ninguna pausa más allá de la ruta; acumulados monótonos; combustible inicial <= tanque; reserva < tanque. Solicitud lleva snapshot de vehículo para análisis, aunque provenga de un vehículo guardado. Esto hace reproducible el resultado.
+Actualizar la fecha del ejemplo: debe estar dentro de los próximos 30 días. Combustibles: `nafta_2`, `nafta_3`, `diesel_2`, `diesel_3`. Cada pausa tiene `distanceM` y `durationSeconds`; máximo 20. Los extremos deben confirmarse y separarse al menos 100 metros.
 
-429 incluye Retry-After. 401 token inválido; 403 operación no permitida; 404 recurso ajeno/inexistente para evitar enumeración; 409 conflicto de idempotencia; 422 input/ruta no soportados; 503 dependencia esencial indisponible. Concurrency control en edición guardada mediante ETag/If-Match en implementación; esquema extensible antes de congelar v1.
+## Errores y límites
 
-## Ejemplo conceptual de resultado
+Problem Details con `title`, `status`, `code` y, cuando corresponde, `correlationId`. Lecturas/borrados desconocidos devuelven 404. Códigos habituales: 400 formato, 401 sesión, 409 idempotencia, 422 datos, 429 cuota y 503 dependencia.
 
-“PRECAUCIÓN — cobertura vial parcial” puede incluir un aviso meteorológico que coincide con el paso estimado y costo nulo por precio faltante. `reasons` contiene código, texto, intervalo, evidencia y confianza. Un `sourceRef` resuelve fuente, enlace, emisión y actualización. El color no reemplaza estos campos.
-
-Un viaje guardado es una solicitud persistida más un informe fechado, no un monitor continuo. GET no dispara llamadas externas ocultas; el cliente presenta “Actualizar análisis” si venció. Las reevaluaciones producen nuevas versiones, no reescriben la historia usada para explicar un resultado.
+Por instancia: 5 análisis/hora/sesión, 10 sesiones/hora/IP y 240 solicitudes/minuto. Cuerpo máximo 64 KiB; análisis hasta 15 segundos. Los reintentos también consumen cuota. No hay endpoints de cuentas ni vehículos sincronizados.

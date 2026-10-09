@@ -1,22 +1,58 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "RutaSmart Argentina — contrato propuesto",
-    "version": "0.1.0-design",
-    "description": "Diseño previo a implementación. No representa endpoints externos ni un servicio desplegado. Las restricciones semánticas adicionales están en API.md."
+    "title": "RutaSmart Argentina",
+    "version": "0.1.0",
+    "description": "Operaciones implementadas. Routing piloto y cobertura parcial; sin cuentas sincronizadas."
   },
   "servers": [
     {
-      "url": "/api/v1",
-      "description": "Base relativa propuesta"
+      "url": "http://localhost:5080",
+      "description": "Desarrollo local"
+    }
+  ],
+  "security": [
+    {
+      "session": []
     }
   ],
   "paths": {
-    "/sessions/anonymous": {
+    "/health/live": {
+      "get": {
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Resultado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/sessions/anonymous": {
       "post": {
-        "operationId": "createAnonymousSession",
-        "summary": "Crear sesión temporal, sin cuenta",
-        "security": [],
+        "operationId": "createSession",
         "responses": {
           "201": {
             "description": "Resultado",
@@ -28,78 +64,8 @@
               }
             }
           },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -108,21 +74,13 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
-    "/locations/search": {
+    "/api/v1/locations/search": {
       "get": {
         "operationId": "searchLocations",
-        "summary": "Normalizar localidades; no sustituye punto confirmado",
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "AnonymousSession": []
-          }
-        ],
         "responses": {
           "200": {
             "description": "Resultado",
@@ -137,78 +95,8 @@
               }
             }
           },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -226,124 +114,28 @@
             "schema": {
               "type": "string",
               "minLength": 2,
-              "maxLength": 120
-            }
-          },
-          {
-            "name": "provinceId",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 20,
-              "default": 10
+              "maxLength": 80
             }
           }
         ]
       }
     },
-    "/trips/analyze": {
+    "/api/v1/trips/analyze": {
       "post": {
         "operationId": "analyzeTrip",
-        "summary": "Crear viaje temporal con evaluación completa o parcial",
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "AnonymousSession": []
-          }
-        ],
         "responses": {
           "201": {
             "description": "Resultado",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Trip"
+                  "$ref": "#/components/schemas/Assessment"
                 }
               }
             }
           },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -360,8 +152,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "minLength": 8,
-              "maxLength": 128
+              "pattern": "^[a-zA-Z0-9_-]{8,100}$"
             }
           }
         ],
@@ -370,55 +161,29 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AnalyzeRequest"
+                "$ref": "#/components/schemas/TripInput"
               }
             }
           }
         }
       }
     },
-    "/trips": {
+    "/api/v1/trips/{id}": {
       "get": {
-        "operationId": "listSavedTrips",
-        "summary": "Listar viajes propios guardados",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
+        "operationId": "getTrip",
         "responses": {
           "200": {
             "description": "Resultado",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TripPage"
+                  "$ref": "#/components/schemas/Assessment"
                 }
               }
             }
           },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -428,357 +193,29 @@
             }
           },
           "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
+            "description": "No existe o no pertenece a la sesión"
           }
         },
         "parameters": [
           {
-            "name": "cursor",
-            "in": "query",
+            "name": "id",
+            "in": "path",
+            "required": true,
             "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50,
-              "default": 20
+              "type": "string",
+              "format": "uuid"
             }
           }
         ]
-      }
-    },
-    "/trips/{tripId}": {
-      "parameters": [
-        {
-          "name": "tripId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      ],
-      "get": {
-        "operationId": "getTrip",
-        "summary": "Leer snapshot propio sin reanalizar implícitamente",
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "AnonymousSession": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Resultado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Trip"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "operationId": "saveTrip",
-        "summary": "Guardar o renombrar viaje de cuenta propietaria",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Resultado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Trip"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "saved": {
-                    "type": "boolean"
-                  },
-                  "name": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "maxLength": 120
-                  }
-                },
-                "required": [
-                  "saved"
-                ]
-              }
-            }
-          }
-        }
       },
       "delete": {
         "operationId": "deleteTrip",
-        "summary": "Eliminar viaje propio",
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "AnonymousSession": []
-          }
-        ],
         "responses": {
           "204": {
             "description": "Resultado"
           },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -788,114 +225,38 @@
             }
           },
           "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
+            "description": "No existe o no pertenece a la sesión"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
-        }
+        ]
       }
     },
-    "/trips/{tripId}/analyses": {
-      "parameters": [
-        {
-          "name": "tripId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      ],
+    "/api/v1/trips/{id}/analyses": {
       "post": {
         "operationId": "reanalyzeTrip",
-        "summary": "Crear nueva versión con input completo; mantiene propietario",
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "AnonymousSession": []
-          }
-        ],
         "responses": {
           "201": {
             "description": "Resultado",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Trip"
+                  "$ref": "#/components/schemas/Assessment"
                 }
               }
             }
           },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -905,65 +266,26 @@
             }
           },
           "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
+            "description": "No existe o no pertenece a la sesión"
           }
         },
         "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
           {
             "name": "Idempotency-Key",
             "in": "header",
             "required": true,
             "schema": {
               "type": "string",
-              "minLength": 8,
-              "maxLength": 128
+              "pattern": "^[a-zA-Z0-9_-]{8,100}$"
             }
           }
         ],
@@ -972,209 +294,29 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AnalyzeRequest"
+                "$ref": "#/components/schemas/TripInput"
               }
             }
           }
         }
       }
     },
-    "/vehicles": {
+    "/api/v1/sources/status": {
       "get": {
-        "operationId": "listVehicles",
-        "summary": "Vehículos propios",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
+        "operationId": "sourceStatus",
         "responses": {
           "200": {
             "description": "Resultado",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Vehicle"
-                  }
+                  "$ref": "#/components/schemas/SourceStatus"
                 }
               }
             }
           },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "createVehicle",
-        "summary": "Guardar vehículo manual",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Resultado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Vehicle"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1184,71 +326,16 @@
             }
           }
         },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VehicleInput"
-              }
-            }
-          }
-        }
+        "security": []
       }
     },
-    "/vehicles/{vehicleId}": {
-      "parameters": [
-        {
-          "name": "vehicleId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string",
-            "format": "uuid"
-          }
-        }
-      ],
+    "/api/v1/trips": {
       "get": {
-        "operationId": "getVehicle",
-        "summary": "Leer vehículo propio",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
+        "operationId": "listTripsUnavailable",
+        "summary": "Cuentas no habilitadas; guardado anónimo local",
         "responses": {
-          "200": {
-            "description": "Resultado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Vehicle"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
           "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
+            "description": "Cuentas no configuradas",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1257,398 +344,8 @@
               }
             }
           },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "operationId": "updateVehicle",
-        "summary": "Actualizar campos de vehículo propio",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Resultado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Vehicle"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "label": {
-                    "type": "string",
-                    "maxLength": 80
-                  },
-                  "brand": {
-                    "type": "string"
-                  },
-                  "model": {
-                    "type": "string"
-                  },
-                  "year": {
-                    "type": "integer",
-                    "minimum": 1900,
-                    "maximum": 2100
-                  },
-                  "fuelType": {
-                    "enum": [
-                      "gasoline_grade_2",
-                      "gasoline_grade_3",
-                      "diesel_grade_2",
-                      "diesel_grade_3"
-                    ]
-                  },
-                  "tankLitres": {
-                    "type": "number",
-                    "exclusiveMinimum": 0,
-                    "maximum": 300
-                  },
-                  "consumptionLPer100Km": {
-                    "type": "number",
-                    "exclusiveMinimum": 0,
-                    "maximum": 100
-                  },
-                  "cityConsumptionLPer100Km": {
-                    "type": "number",
-                    "exclusiveMinimum": 0,
-                    "maximum": 100
-                  }
-                },
-                "required": [],
-                "minProperties": 1
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "deleteVehicle",
-        "summary": "Eliminar vehículo propio sin modificar snapshots",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Resultado"
-          },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/sources/status": {
-      "get": {
-        "operationId": "getSourceStatus",
-        "summary": "Salud pública resumida; sin secretos",
-        "security": [],
-        "responses": {
-          "200": {
-            "description": "Resultado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SourceStatus"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error HTTP 400; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error HTTP 401; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error HTTP 403; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error HTTP 404; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Error HTTP 409; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Error HTTP 422; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error HTTP 429; code estable en Problem Details",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error HTTP 503; code estable en Problem Details",
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1663,64 +360,21 @@
   },
   "components": {
     "securitySchemes": {
-      "BearerAuth": {
+      "session": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Cuenta mediante OIDC/PKCE; proveedor pendiente."
-      },
-      "AnonymousSession": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-Anonymous-Session",
-        "description": "Token opaco temporal. Nunca enviar simultáneamente con Bearer."
+        "bearerFormat": "opaque"
       }
     },
     "schemas": {
-      "Problem": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "type": {
-            "type": "string",
-            "format": "uri"
-          },
-          "title": {
-            "type": "string"
-          },
-          "status": {
-            "type": "integer"
-          },
-          "detail": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "correlationId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "title",
-          "status",
-          "code",
-          "correlationId"
-        ]
-      },
       "Point": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "latitude": {
-            "type": "number",
-            "minimum": -90,
-            "maximum": 90
+            "type": "number"
           },
           "longitude": {
-            "type": "number",
-            "minimum": -180,
-            "maximum": 180
+            "type": "number"
           }
         },
         "required": [
@@ -1730,7 +384,6 @@
       },
       "Location": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "label": {
             "type": "string"
@@ -1739,137 +392,61 @@
             "$ref": "#/components/schemas/Point"
           },
           "georefId": {
-            "type": "string"
-          },
-          "precision": {
-            "enum": [
-              "confirmed_point",
-              "locality_centroid",
-              "approximate"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         },
         "required": [
           "label",
-          "point",
-          "precision"
+          "point"
         ]
       },
-      "VehicleInput": {
+      "Vehicle": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
-          "label": {
-            "type": "string",
-            "maxLength": 80
-          },
-          "brand": {
+          "name": {
             "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "year": {
-            "type": "integer",
-            "minimum": 1900,
-            "maximum": 2100
           },
           "fuelType": {
-            "enum": [
-              "gasoline_grade_2",
-              "gasoline_grade_3",
-              "diesel_grade_2",
-              "diesel_grade_3"
-            ]
+            "type": "string"
           },
           "tankLitres": {
-            "type": "number",
-            "exclusiveMinimum": 0,
-            "maximum": 300
+            "type": "number"
           },
           "consumptionLPer100Km": {
-            "type": "number",
-            "exclusiveMinimum": 0,
-            "maximum": 100
-          },
-          "cityConsumptionLPer100Km": {
-            "type": "number",
-            "exclusiveMinimum": 0,
-            "maximum": 100
+            "type": "number"
           }
         },
         "required": [
-          "label",
+          "name",
           "fuelType",
           "tankLitres",
           "consumptionLPer100Km"
         ]
       },
-      "Vehicle": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "input": {
-            "$ref": "#/components/schemas/VehicleInput"
-          }
-        },
-        "required": [
-          "id",
-          "input"
-        ]
-      },
       "Pause": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
-          "distanceFromOriginM": {
-            "type": "number",
-            "minimum": 0
+          "distanceM": {
+            "type": "number"
           },
           "durationSeconds": {
-            "type": "integer",
-            "minimum": 60,
-            "maximum": 172800
+            "type": "integer"
           }
         },
         "required": [
-          "distanceFromOriginM",
+          "distanceM",
           "durationSeconds"
         ]
       },
-      "FuelInput": {
+      "TripInput": {
         "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "initialLitres": {
-            "type": "number",
-            "minimum": 0
-          },
-          "reserveLitres": {
-            "type": "number",
-            "minimum": 0
-          },
-          "manualPriceArsPerLitre": {
-            "type": "number",
-            "exclusiveMinimum": 0
-          },
-          "priceReferenceAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "initialLitres",
-          "reserveLitres"
-        ]
-      },
-      "AnalyzeRequest": {
-        "type": "object",
-        "additionalProperties": false,
         "properties": {
           "origin": {
             "$ref": "#/components/schemas/Location"
@@ -1882,21 +459,35 @@
             "format": "date-time"
           },
           "timeZone": {
-            "type": "string",
-            "example": "America/Argentina/Buenos_Aires"
+            "type": "string"
           },
           "vehicle": {
-            "$ref": "#/components/schemas/VehicleInput"
+            "$ref": "#/components/schemas/Vehicle"
           },
-          "fuel": {
-            "$ref": "#/components/schemas/FuelInput"
+          "initialLitres": {
+            "type": "number"
+          },
+          "reserveLitres": {
+            "type": "number"
+          },
+          "manualPriceArsPerLitre": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "pauses": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Pause"
-            },
-            "maxItems": 20
+            }
+          },
+          "demo": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -1904,100 +495,35 @@
           "destination",
           "departureAt",
           "timeZone",
-          "vehicle"
+          "vehicle",
+          "initialLitres",
+          "reserveLitres",
+          "pauses"
         ]
       },
-      "Source": {
+      "RouteData": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
-          "id": {
+          "provider": {
             "type": "string"
           },
-          "name": {
-            "type": "string"
+          "synthetic": {
+            "type": "boolean"
           },
-          "url": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uri",
-            "description": "Null para dato manual sin URL de publicación."
+          "geometry": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            }
           },
-          "origin": {
-            "enum": [
-              "official",
-              "external",
-              "user_input"
-            ]
+          "distanceM": {
+            "type": "number"
           },
-          "issuedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "sourceUpdatedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "fetchedAt": {
-            "type": "string",
-            "format": "date-time"
+          "durationSeconds": {
+            "type": "number"
           },
           "attribution": {
             "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "url",
-          "origin",
-          "sourceUpdatedAt",
-          "fetchedAt"
-        ]
-      },
-      "Coverage": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "dimension": {
-            "enum": [
-              "road",
-              "official_alerts",
-              "forecast",
-              "stations",
-              "prices"
-            ]
-          },
-          "availability": {
-            "enum": [
-              "available",
-              "partial",
-              "unavailable",
-              "stale"
-            ]
-          },
-          "coveredDistanceM": {
-            "type": "number",
-            "minimum": 0
-          },
-          "totalDistanceM": {
-            "type": "number",
-            "minimum": 0
-          },
-          "validUntil": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
           },
           "limitations": {
             "type": "array",
@@ -2007,78 +533,168 @@
           }
         },
         "required": [
+          "provider",
+          "synthetic",
+          "geometry",
+          "distanceM",
+          "durationSeconds",
+          "attribution",
+          "limitations"
+        ]
+      },
+      "Passage": {
+        "type": "object",
+        "properties": {
+          "distanceM": {
+            "type": "number"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "earliest": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "latest": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "distanceM",
+          "at",
+          "earliest",
+          "latest"
+        ]
+      },
+      "FuelResult": {
+        "type": "object",
+        "properties": {
+          "consumedLitres": {
+            "type": "number"
+          },
+          "initialRangeKm": {
+            "type": "number"
+          },
+          "minimumPurchaseLitres": {
+            "type": "number"
+          },
+          "consumptionCostArs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minimumPurchaseCostArs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priceOrigin": {
+            "type": "string"
+          },
+          "planStatus": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "consumedLitres",
+          "initialRangeKm",
+          "minimumPurchaseLitres",
+          "priceOrigin",
+          "planStatus"
+        ]
+      },
+      "Coverage": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "type": "string"
+          },
+          "availability": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
           "dimension",
           "availability",
-          "limitations"
+          "message"
         ]
       },
       "Reason": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "code": {
             "type": "string"
           },
           "category": {
-            "enum": [
-              "road",
-              "weather",
-              "fuel",
-              "coverage"
-            ]
+            "type": "string"
           },
           "severity": {
-            "enum": [
-              "info",
-              "caution",
-              "adverse"
-            ]
+            "type": "string"
           },
           "message": {
             "type": "string"
           },
           "sourceRef": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "evidenceVersion": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "distanceFromM": {
-            "type": "number",
-            "minimum": 0
+            "type": "number"
           },
           "distanceToM": {
-            "type": "number",
-            "minimum": 0
+            "type": "number"
           },
-          "passageFrom": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "passageTo": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "confidence": {
-            "enum": [
-              "supported",
-              "estimated",
-              "uncertain"
+          "validFrom": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
-          "calculated": {
-            "type": "boolean"
+          "validTo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
-          "estimated": {
-            "type": "boolean"
-          },
-          "recommendedAction": {
+          "confidence": {
             "type": "string"
           }
         },
@@ -2088,349 +704,24 @@
           "severity",
           "message",
           "sourceRef",
-          "confidence",
-          "calculated",
-          "estimated"
-        ]
-      },
-      "TimelineEntry": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "distanceM": {
-            "type": "number",
-            "minimum": 0
-          },
-          "eta": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "earliestAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "latestAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "method": {
-            "enum": [
-              "provider_segment",
-              "distance_proportion"
-            ]
-          }
-        },
-        "required": [
-          "distanceM",
-          "eta",
-          "earliestAt",
-          "latestAt",
-          "method"
-        ]
-      },
-      "RoadRef": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "jurisdiction": {
-            "enum": [
-              "national",
-              "provincial",
-              "local",
-              "unknown"
-            ]
-          },
-          "provinceId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "distanceFromM": {
-            "type": "number",
-            "minimum": 0
-          },
-          "distanceToM": {
-            "type": "number",
-            "minimum": 0
-          },
-          "confidence": {
-            "enum": [
-              "supported",
-              "estimated",
-              "uncertain"
-            ]
-          }
-        },
-        "required": [
-          "code",
-          "jurisdiction",
+          "evidenceVersion",
           "distanceFromM",
           "distanceToM",
           "confidence"
         ]
       },
-      "LineString": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "type",
-          "coordinates"
-        ],
-        "properties": {
-          "type": {
-            "const": "LineString"
-          },
-          "coordinates": {
-            "type": "array",
-            "minItems": 2,
-            "items": {
-              "type": "array",
-              "minItems": 2,
-              "maxItems": 2,
-              "prefixItems": [
-                {
-                  "type": "number",
-                  "minimum": -180,
-                  "maximum": 180
-                },
-                {
-                  "type": "number",
-                  "minimum": -90,
-                  "maximum": 90
-                }
-              ],
-              "items": false
-            }
-          }
-        }
-      },
-      "Route": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "version": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "provider": {
-            "type": "string"
-          },
-          "profile": {
-            "type": "string"
-          },
-          "distanceM": {
-            "type": "number",
-            "minimum": 0
-          },
-          "durationSeconds": {
-            "type": "number",
-            "minimum": 0
-          },
-          "geometry": {
-            "$ref": "#/components/schemas/LineString"
-          },
-          "generatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "roadReferences": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RoadRef"
-            }
-          },
-          "limitations": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "version",
-          "provider",
-          "profile",
-          "distanceM",
-          "durationSeconds",
-          "geometry",
-          "generatedAt",
-          "roadReferences",
-          "limitations"
-        ]
-      },
-      "StationSuggestion": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "point": {
-            "$ref": "#/components/schemas/Point"
-          },
-          "progressM": {
-            "type": "number",
-            "minimum": 0
-          },
-          "detourM": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "accessVerified": {
-            "type": "boolean"
-          },
-          "productReported": {
-            "type": "boolean"
-          },
-          "stockConfirmed": {
-            "const": false
-          },
-          "priceArsPerLitre": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "exclusiveMinimum": 0
-          },
-          "priceAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "sourceRef": {
-            "type": "string"
-          },
-          "explanation": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "point",
-          "progressM",
-          "detourM",
-          "accessVerified",
-          "productReported",
-          "stockConfirmed",
-          "priceArsPerLitre",
-          "priceAt",
-          "sourceRef",
-          "explanation"
-        ]
-      },
-      "FuelResult": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "consumptionLitres": {
-            "type": "number",
-            "minimum": 0
-          },
-          "consumptionCostArs": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "purchaseLitres": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "purchaseCostArs": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "usableRangeKm": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "planStatus": {
-            "enum": [
-              "not_requested",
-              "candidates_only",
-              "feasible_estimate",
-              "partial",
-              "not_feasible",
-              "insufficient_data"
-            ]
-          },
-          "stations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StationSuggestion"
-            }
-          },
-          "assumptions": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "estimated": {
-            "const": true
-          }
-        },
-        "required": [
-          "consumptionLitres",
-          "consumptionCostArs",
-          "purchaseLitres",
-          "purchaseCostArs",
-          "usableRangeKm",
-          "planStatus",
-          "stations",
-          "assumptions",
-          "estimated"
-        ]
-      },
       "Assessment": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
-          "id": {
+          "tripId": {
             "type": "string",
             "format": "uuid"
           },
           "version": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "routeVersion": {
-            "type": "integer",
-            "minimum": 1
+            "type": "integer"
           },
           "ruleVersion": {
             "type": "string"
-          },
-          "status": {
-            "enum": [
-              "favorable",
-              "caution",
-              "adverse",
-              "insufficient_information"
-            ]
           },
           "computedAt": {
             "type": "string",
@@ -2439,6 +730,24 @@
           "validUntil": {
             "type": "string",
             "format": "date-time"
+          },
+          "input": {
+            "$ref": "#/components/schemas/TripInput"
+          },
+          "route": {
+            "$ref": "#/components/schemas/RouteData"
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Passage"
+            }
+          },
+          "fuel": {
+            "$ref": "#/components/schemas/FuelResult"
+          },
+          "status": {
+            "type": "string"
           },
           "coverage": {
             "type": "array",
@@ -2452,156 +761,223 @@
               "$ref": "#/components/schemas/Reason"
             }
           },
-          "timeline": {
+          "weatherAlerts": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TimelineEntry"
+              "$ref": "#/components/schemas/WeatherMatch"
             }
           },
-          "fuel": {
-            "$ref": "#/components/schemas/FuelResult"
-          },
-          "sources": {
+          "stations": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Source"
+              "$ref": "#/components/schemas/StationCandidate"
             }
+          }
+        },
+        "required": [
+          "tripId",
+          "version",
+          "ruleVersion",
+          "computedAt",
+          "validUntil",
+          "input",
+          "route",
+          "timeline",
+          "fuel",
+          "status",
+          "coverage",
+          "reasons",
+          "weatherAlerts",
+          "stations"
+        ]
+      },
+      "StationPrice": {
+        "type": "object",
+        "properties": {
+          "amountArsPerLitre": {
+            "type": "number"
           },
-          "limitations": {
+          "declaredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "schedule": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amountArsPerLitre",
+          "declaredAt",
+          "schedule"
+        ]
+      },
+      "FuelStation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "brand": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "point": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "fuelType": {
+            "type": "string"
+          },
+          "prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StationPrice"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "brand",
+          "address",
+          "point",
+          "fuelType",
+          "prices"
+        ]
+      },
+      "StationCandidate": {
+        "type": "object",
+        "properties": {
+          "station": {
+            "$ref": "#/components/schemas/FuelStation"
+          },
+          "distanceAlongM": {
+            "type": "number"
+          },
+          "lateralDistanceM": {
+            "type": "number"
+          },
+          "accessStatus": {
+            "type": "string"
+          },
+          "withinInitialRangeWithoutDetour": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "station",
+          "distanceAlongM",
+          "lateralDistanceM",
+          "accessStatus",
+          "withinInitialRangeWithoutDetour"
+        ]
+      },
+      "WeatherAlert": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "sent": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "messageType": {
+            "type": "string"
+          },
+          "references": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "matchedEvents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MatchedEvent"
-            }
-          },
-          "forecastSamples": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ForecastSample"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "version",
-          "routeVersion",
-          "ruleVersion",
-          "status",
-          "computedAt",
-          "validUntil",
-          "coverage",
-          "reasons",
-          "timeline",
-          "fuel",
-          "sources",
-          "limitations",
-          "matchedEvents",
-          "forecastSamples"
-        ]
-      },
-      "Trip": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "saved": {
-            "type": "boolean"
-          },
-          "name": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "request": {
-            "$ref": "#/components/schemas/AnalyzeRequest"
-          },
-          "route": {
-            "$ref": "#/components/schemas/Route"
-          },
-          "assessment": {
-            "$ref": "#/components/schemas/Assessment"
-          },
-          "expiresAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "saved",
-          "name",
-          "request",
-          "route",
-          "assessment",
-          "expiresAt"
-        ]
-      },
-      "TripSummary": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "departureAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "status": {
+          "event": {
             "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "polygons": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Point"
+              }
+            }
           }
         },
         "required": [
           "id",
-          "name",
-          "departureAt",
-          "status"
+          "sender",
+          "sent",
+          "messageType",
+          "references",
+          "event",
+          "severity",
+          "description",
+          "instruction",
+          "from",
+          "url",
+          "polygons"
         ]
       },
-      "TripPage": {
+      "WeatherMatch": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TripSummary"
-            }
+          "alert": {
+            "$ref": "#/components/schemas/WeatherAlert"
           },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "confidence": {
+            "type": "string"
+          },
+          "distanceFromM": {
+            "type": "number"
+          },
+          "distanceToM": {
+            "type": "number"
           }
         },
         "required": [
-          "items",
-          "nextCursor"
+          "alert",
+          "confidence",
+          "distanceFromM",
+          "distanceToM"
         ]
       },
       "Session": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
           "token": {
             "type": "string"
@@ -2616,355 +992,95 @@
           "expiresAt"
         ]
       },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "correlationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ]
+      },
       "SourceStatus": {
         "type": "object",
-        "additionalProperties": false,
         "properties": {
-          "sourceId": {
+          "routing": {
             "type": "string"
           },
-          "name": {
+          "weather": {
             "type": "string"
           },
-          "availability": {
-            "enum": [
-              "available",
-              "partial",
-              "unavailable",
-              "stale"
-            ]
-          },
-          "lastSuccessAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "sourceUpdatedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "coverageDescription": {
+          "weatherDetail": {
             "type": "string"
-          }
-        },
-        "required": [
-          "sourceId",
-          "name",
-          "availability",
-          "lastSuccessAt",
-          "sourceUpdatedAt",
-          "coverageDescription"
-        ]
-      },
-      "EventGeometry": {
-        "description": "Geometría WGS84 de evidencia. Point, LineString, Polygon o MultiPolygon. Coordenadas y anillos se validan semánticamente en backend. Puede ser null si ubicación incierta.",
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/PointGeometry"
           },
-          {
-            "$ref": "#/components/schemas/LineString"
-          },
-          {
-            "$ref": "#/components/schemas/PolygonGeometry"
-          },
-          {
-            "$ref": "#/components/schemas/MultiPolygonGeometry"
-          }
-        ]
-      },
-      "PointGeometry": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "type": {
-            "const": "Point"
-          },
-          "coordinates": {
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 2,
-            "prefixItems": [
+          "weatherLastSuccessAt": {
+            "anyOf": [
               {
-                "type": "number",
-                "minimum": -180,
-                "maximum": 180
-              },
-              {
-                "type": "number",
-                "minimum": -90,
-                "maximum": 90
-              }
-            ],
-            "items": false
-          }
-        },
-        "required": [
-          "type",
-          "coordinates"
-        ]
-      },
-      "PolygonGeometry": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "type": {
-            "const": "Polygon"
-          },
-          "coordinates": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "array",
-              "minItems": 4,
-              "items": {
-                "type": "array",
-                "minItems": 2,
-                "maxItems": 2,
-                "prefixItems": [
-                  {
-                    "type": "number",
-                    "minimum": -180,
-                    "maximum": 180
-                  },
-                  {
-                    "type": "number",
-                    "minimum": -90,
-                    "maximum": 90
-                  }
-                ],
-                "items": false
-              }
-            }
-          }
-        },
-        "required": [
-          "type",
-          "coordinates"
-        ]
-      },
-      "MultiPolygonGeometry": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "type": {
-            "const": "MultiPolygon"
-          },
-          "coordinates": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "array",
-              "minItems": 1,
-              "items": {
-                "type": "array",
-                "minItems": 4,
-                "items": {
-                  "type": "array",
-                  "minItems": 2,
-                  "maxItems": 2,
-                  "prefixItems": [
-                    {
-                      "type": "number",
-                      "minimum": -180,
-                      "maximum": 180
-                    },
-                    {
-                      "type": "number",
-                      "minimum": -90,
-                      "maximum": 90
-                    }
-                  ],
-                  "items": false
-                }
-              }
-            }
-          }
-        },
-        "required": [
-          "type",
-          "coordinates"
-        ]
-      },
-      "MatchedEvent": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "enum": [
-              "weather_alert",
-              "road_event"
-            ]
-          },
-          "sourceRef": {
-            "type": "string"
-          },
-          "evidenceVersion": {
-            "type": "string"
-          },
-          "phenomenon": {
-            "type": "string"
-          },
-          "originalSeverity": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "geometry": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/EventGeometry"
+                "type": "string",
+                "format": "date-time"
               },
               {
                 "type": "null"
               }
             ]
           },
-          "validFrom": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
+          "weatherRecords": {
+            "type": "integer"
           },
-          "validTo": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
+          "weatherRejected": {
+            "type": "integer"
           },
-          "precision": {
-            "enum": [
-              "supported",
-              "approximate",
-              "unknown"
-            ]
-          },
-          "reasonCodes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "sourceRef",
-          "evidenceVersion",
-          "geometry",
-          "validFrom",
-          "validTo",
-          "precision",
-          "reasonCodes"
-        ]
-      },
-      "ForecastSample": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "point": {
-            "$ref": "#/components/schemas/Point"
-          },
-          "distanceM": {
-            "type": "number",
-            "minimum": 0
-          },
-          "sourceRef": {
+          "roads": {
             "type": "string"
           },
-          "model": {
+          "stations": {
             "type": "string"
           },
-          "cycleAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
+          "stationsDetail": {
+            "type": "string"
           },
-          "validFrom": {
-            "type": "string",
-            "format": "date-time"
+          "stationsCount": {
+            "type": "integer"
           },
-          "validTo": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "spatialResolutionM": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "exclusiveMinimum": 0
-          },
-          "temperatureC": {
-            "type": [
-              "number",
-              "null"
+          "stationsUpdatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
-          "precipitationMm": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
+          "prices": {
+            "type": "string"
           },
-          "precipitationProbabilityPercent": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0,
-            "maximum": 100
+          "accounts": {
+            "type": "string"
           },
-          "windKmh": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
+          "storage": {
+            "type": "string"
           },
-          "gustKmh": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "visibilityM": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "estimated": {
-            "const": true
+          "demoAvailable": {
+            "type": "boolean"
           }
-        },
-        "required": [
-          "point",
-          "distanceM",
-          "sourceRef",
-          "model",
-          "cycleAt",
-          "validFrom",
-          "validTo",
-          "spatialResolutionM",
-          "estimated"
-        ]
+        }
       }
     }
   }

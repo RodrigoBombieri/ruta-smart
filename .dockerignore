@@ -1,0 +1,9 @@
+.git
+.env
+.local
+node_modules
+**/obj
+**/bin
+mobile/rutasmart/.dart_tool
+mobile/rutasmart/build/app
+mobile/rutasmart/build/flutter_assets
