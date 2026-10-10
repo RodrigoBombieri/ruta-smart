@@ -4,6 +4,7 @@ import 'api.dart';
 import 'storage.dart';
 import 'route_map.dart';
 import 'journey_hero.dart';
+import 'app_logo.dart';
 
 const green = Color(0xff126356);
 const muted = Color(0xff66746b);
@@ -116,6 +117,10 @@ class _HomePageState extends State<HomePage> {
           wide
               ? null
               : AppBar(
+                leading: const Padding(
+                  padding: EdgeInsets.all(9),
+                  child: AppLogo(size: 38),
+                ),
                 title: const Text(
                   'RutaSmart',
                   style: TextStyle(fontWeight: FontWeight.w800, color: green),
@@ -142,7 +147,7 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 22),
-                    const Icon(Icons.route, color: green, size: 36),
+                    const AppLogo(size: 52),
                     const SizedBox(height: 14),
                     const Text(
                       'RutaSmart',
@@ -586,7 +591,7 @@ class _PlannerPageState extends State<PlannerPage> {
         ),
         const SizedBox(height: 18),
         const Text(
-          'Alertas SMN con cobertura parcial. Estado vial aún no habilitado. El routing público de prueba cubre Buenos Aires–Rosario y alrededores; una ruta calculada no implica condiciones favorables.',
+          'Rutas por Argentina con OSRM público de prueba. SMN y Vialidad con cobertura parcial; avisos viales asociados por ruta y provincia.',
           style: TextStyle(color: muted, fontSize: 12),
         ),
       ],
@@ -1177,8 +1182,8 @@ class _SourcesPageState extends State<SourcesPage> {
                     'Routing',
                     s.data?['routing'] == 'configured_pending_benchmark'
                         ? 'Configurado. Benchmark de cobertura pendiente.'
-                        : s.data?['routing'] == 'osrm_public_pilot'
-                        ? 'OSRM público, sin cuenta. Corredor piloto Buenos Aires–Rosario. Solo pruebas no comerciales; sin garantía de disponibilidad.'
+                        : s.data?['routing'] == 'osrm_public_argentina'
+                        ? 'OSRM público, sin cuenta. Rutas por Argentina y advertencia de tránsito internacional. Solo pruebas no comerciales; sin garantía de disponibilidad.'
                         : 'Requiere proveedor y área aprobados. Demostración sintética disponible en desarrollo.',
                   ),
                   InfoRow(
@@ -1186,10 +1191,10 @@ class _SourcesPageState extends State<SourcesPage> {
                     'Alertas meteorológicas · SMN',
                     '${s.data?['weatherDetail'] ?? 'Consultando el canal público CAP…'}\nAvisos activos descargados: ${s.data?['weatherRecords'] ?? '—'}. Última consulta: ${s.data?['weatherLastSuccessAt'] == null ? 'sin descarga válida' : date(s.data!['weatherLastSuccessAt'] as String)}.',
                   ),
-                  const InfoRow(
+                  InfoRow(
                     Icons.construction,
                     'Estado vial · Vialidad',
-                    'No habilitado. No se informa ausencia de cortes.',
+                    '${s.data?['roadsDetail'] ?? 'Consultando el parte público…'}\nTramos descargados: ${s.data?['roadsCount'] ?? '—'}.',
                   ),
                   InfoRow(
                     Icons.local_gas_station_outlined,
@@ -1241,9 +1246,33 @@ class ReportPage extends StatefulWidget {
 
 class _ReportPageState extends State<ReportPage> {
   bool saved = false;
+  bool planning = false;
+  late Json current = widget.report;
+  Future<void> updateFuelPlan(bool accept) async {
+    setState(() => planning = true);
+    try {
+      final updated = await widget.api.fuelPlan(
+        current['tripId'] as String,
+        current['version'] as int,
+        accept,
+      );
+      if (mounted) {
+        setState(() {
+          current = updated;
+          saved = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) message(context, e);
+    } finally {
+      if (mounted) setState(() => planning = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final r = widget.report;
+    final r = current;
+    final plan = r['fuelPlan'] as Json?;
     final input = r['input'] as Json;
     final route = r['route'] as Json;
     final fuel = r['fuel'] as Json;
@@ -1261,7 +1290,15 @@ class _ReportPageState extends State<ReportPage> {
         }[r['status']] ??
         'Información insuficiente';
     return Scaffold(
-      appBar: AppBar(title: const Text('Informe del viaje')),
+      appBar: AppBar(
+        title: const Row(
+          children: [
+            AppLogo(size: 30),
+            SizedBox(width: 10),
+            Text('Informe del viaje'),
+          ],
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Center(
@@ -1309,7 +1346,7 @@ class _ReportPageState extends State<ReportPage> {
                       ),
                       const SizedBox(height: 10),
                       const Text(
-                        'Revisá los avisos y la cobertura de cada fuente. El estado vial no está integrado y la cobertura meteorológica es parcial; este informe no garantiza condiciones seguras.',
+                        'Revisá los avisos y la cobertura de cada fuente. Vialidad y meteorología tienen cobertura parcial; este informe no garantiza condiciones seguras.',
                       ),
                       if (stale)
                         const Padding(
@@ -1323,6 +1360,16 @@ class _ReportPageState extends State<ReportPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                if (route['crossesInternationalBorder'] == true) ...[
+                  panel(
+                    const InfoRow(
+                      Icons.public,
+                      'Tránsito internacional',
+                      'El trazado sale de la cartografía argentina. Verificá pasos fronterizos, documentación y ferris antes de salir.',
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
                 LayoutBuilder(
                   builder:
                       (context, constraints) => Wrap(
@@ -1389,13 +1436,13 @@ class _ReportPageState extends State<ReportPage> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        fuel['planStatus'] == 'stations_unavailable'
-                            ? 'Necesitás cargar en el recorrido. Las estaciones candidatas no constituyen un plan de carga: falta verificar acceso vial y disponibilidad.'
+                        (fuel['minimumPurchaseLitres'] as num) > 0
+                            ? 'Necesitás cargar en el recorrido. Consultá el plan por carretera y confirmá disponibilidad en cada estación.'
                             : 'Con los valores ingresados, el combustible inicial alcanzaría conservando la reserva.',
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Estimación sin desvíos. El consumo y la compra son conceptos distintos. Un precio manual no acredita el precio ni el stock de una estación.',
+                        'Estimación sobre el recorrido mostrado. El consumo y la compra son conceptos distintos. Un precio manual no acredita el precio ni el stock de una estación.',
                         style: TextStyle(color: muted, fontSize: 12),
                       ),
                     ],
@@ -1406,6 +1453,83 @@ class _ReportPageState extends State<ReportPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (!synthetic) ...[
+                        Text(
+                          'Plan de carga por carretera',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          plan?['message'] as String? ??
+                              'Calculá paradas entre las estaciones candidatas, con distancias viales y reserva entre etapas.',
+                        ),
+                        if (plan?['route'] != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            '${number((plan!['extraDistanceM'] as num) / 1000)} km adicionales · ${number((plan['extraSeconds'] as num) / 60, 0)} min adicionales, incluidas cargas de 15 min · ${number(plan['purchaseLitres'], 2)} L a comprar',
+                          ),
+                          if (plan['route']['crossesInternationalBorder'] ==
+                              true)
+                            const Text(
+                              'La propuesta incluye tránsito internacional. Verificá pasos y documentación.',
+                            ),
+                          for (final stop in plan['stops'] as List)
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(
+                                Icons.local_gas_station,
+                                color: green,
+                              ),
+                              title: Text(
+                                '${stop['station']['brand']} · ${stop['station']['name']}',
+                              ),
+                              subtitle: Text(
+                                'Km ${number((stop['distanceM'] as num) / 1000, 0)} · llegada ${date(stop['arrivalAt'] as String)}\nLlegás con ${number(stop['arrivalLitres'])} L · cargá ${number(stop['purchaseLitres'], 2)} L · salís con ${number(stop['departureLitres'])} L',
+                              ),
+                              trailing:
+                                  plan['status'] == 'accepted'
+                                      ? IconButton(
+                                        tooltip: 'Navegar a esta estación',
+                                        icon: const Icon(
+                                          Icons.navigation_outlined,
+                                        ),
+                                        onPressed:
+                                            () => navigate('google', {
+                                              ...input,
+                                              'destination': {
+                                                'point':
+                                                    stop['station']['point'],
+                                              },
+                                            }),
+                                      )
+                                      : null,
+                            ),
+                          if (plan['status'] == 'ready')
+                            FilledButton(
+                              onPressed:
+                                  planning ? null : () => updateFuelPlan(true),
+                              child: const Text(
+                                'Usar este plan y recalcular informe',
+                              ),
+                            ),
+                          if (plan['status'] == 'accepted')
+                            const Text(
+                              'Plan incorporado al mapa, horarios y evaluación. Navegá por etapas con el botón de cada estación; los botones generales abren el destino final.',
+                            ),
+                        ],
+                        if (plan?['status'] != 'accepted')
+                          OutlinedButton.icon(
+                            onPressed:
+                                planning ? null : () => updateFuelPlan(false),
+                            icon: const Icon(Icons.alt_route),
+                            label: Text(
+                              planning
+                                  ? 'Calculando accesos…'
+                                  : 'Calcular plan de carga',
+                            ),
+                          ),
+                        const Divider(height: 32),
+                      ],
                       if ((r['stations'] as List? ?? []).isNotEmpty) ...[
                         Text(
                           'Estaciones candidatas',
@@ -1498,6 +1622,36 @@ class _ReportPageState extends State<ReportPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      for (final match
+                          in (r['roadNotices'] as List? ?? [])) ...[
+                        InfoRow(
+                          Icons.construction_outlined,
+                          'Vialidad · RN ${match['notice']['road']} · ${match['notice']['status']}',
+                          '${match['notice']['province']} · ${match['notice']['section']}\n${match['notice']['description']}\nFecha publicada: ${match['notice']['updatedAt'] == null ? 'sin fecha' : date(match['notice']['updatedAt'] as String)}${match['stale'] == true ? ' · FECHA ANTIGUA O INCIERTA' : ''}',
+                        ),
+                        const Text(
+                          'Coinciden ruta y provincia. Tramo exacto, sentido y estado al pasar sin confirmar.',
+                          style: TextStyle(fontSize: 12, color: muted),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              await launchUrl(
+                                Uri.parse(
+                                  'https://www.argentina.gob.ar/transporte/vialidad-nacional/estado-de-rutas',
+                                ),
+                                mode: LaunchMode.externalApplication,
+                              );
+                            } catch (_) {
+                              if (context.mounted) {
+                                message(context, 'No se pudo abrir la fuente.');
+                              }
+                            }
+                          },
+                          child: const Text('Ver parte oficial de Vialidad'),
+                        ),
+                        const Divider(height: 28),
+                      ],
                       for (final match
                           in (r['weatherAlerts'] as List? ?? [])) ...[
                         InfoRow(

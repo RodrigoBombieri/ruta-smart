@@ -46,6 +46,12 @@ builder.Services.AddHttpClient("energy",c=>c.Timeout=TimeSpan.FromSeconds(30)).C
 builder.Services.AddSingleton(new EnergyOptions(builder.Configuration["Energy:CsvPath"],builder.Configuration.GetValue<bool?>("Energy:AllowPublicHttp") ?? builder.Environment.IsDevelopment()));
 builder.Services.AddSingleton(s=>new EnergyProvider(s.GetRequiredService<IHttpClientFactory>().CreateClient("energy"),s.GetRequiredService<IStore>(),s.GetRequiredService<EnergyOptions>()));
 if (!builder.Environment.IsEnvironment("Testing")) builder.Services.AddHostedService<EnergyWorker>();
+builder.Services.AddHttpClient("vialidad",c=> {
+    c.Timeout=TimeSpan.FromSeconds(25);
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("RutaSmart/0.2 (trip-planner)");
+}).ConfigurePrimaryHttpMessageHandler(()=>new HttpClientHandler { AllowAutoRedirect=false });
+builder.Services.AddSingleton(s=>new VialidadProvider(s.GetRequiredService<IHttpClientFactory>().CreateClient("vialidad"),s.GetRequiredService<IStore>()));
+if(!builder.Environment.IsEnvironment("Testing")) builder.Services.AddHostedService<VialidadWorker>();
 builder.Services.AddHostedService<RetentionWorker>();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(
     builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:5173", "http://127.0.0.1:5173"])
@@ -99,14 +105,19 @@ app.Use(async (context, next) =>
 });
 app.UseRateLimiter();
 app.MapGet("/health/live", () => Results.Ok(new { status = "alive" }));
-app.MapGet("/api/v1/sources/status", (SmnCapProvider smn,EnergyProvider energy) => new {
-    routing = routingEnabled ? "configured_pending_benchmark" : app.Environment.IsDevelopment() && builder.Configuration["Routing:Provider"]=="osrm_public" ? "osrm_public_pilot" : "not_configured",
+app.MapGet("/api/v1/sources/status", (SmnCapProvider smn,EnergyProvider energy,VialidadProvider vialidad) => new {
+    routing = routingEnabled ? "configured_pending_benchmark" : app.Environment.IsDevelopment() && builder.Configuration["Routing:Provider"]=="osrm_public" ? "osrm_public_argentina" : "not_configured",
     weather = smn.Coverage(DateTimeOffset.UtcNow).Availability,
     weatherDetail = smn.Coverage(DateTimeOffset.UtcNow).Message,
     weatherLastSuccessAt = smn.Snapshot.LastSuccessAt,
     weatherRecords = CapParser.Active(smn.Snapshot.Alerts,DateTimeOffset.UtcNow).Length,
     weatherRejected = smn.Snapshot.Rejected,
-    roads = "unavailable", stations = energy.Coverage(DateTimeOffset.UtcNow).Availability,
+    roads = vialidad.Coverage(DateTimeOffset.UtcNow).Availability,
+    roadsDetail = vialidad.Coverage(DateTimeOffset.UtcNow).Message,
+    roadsCount = vialidad.Snapshot?.Notices.Length ?? 0,
+    roadsUpdatedAt = vialidad.Snapshot?.FetchedAt,
+    roadsRejected = vialidad.Snapshot?.Rejected ?? 0,
+    stations = energy.Coverage(DateTimeOffset.UtcNow).Availability,
     stationsDetail = energy.Coverage(DateTimeOffset.UtcNow).Message,
     stationsCount = energy.Snapshot?.Stations.Select(s=>s.Id).Distinct().Count() ?? 0,
     stationsUpdatedAt = energy.Snapshot?.FetchedAt,
@@ -138,6 +149,51 @@ app.MapPost("/api/v1/trips/analyze", (JsonElement body, HttpContext c, IStore s,
 app.MapPost("/api/v1/trips/{id:guid}/analyses", (Guid id, JsonElement body, HttpContext c, IStore s, RoutingProvider r, SemaphoreSlim gate, TimeProvider clock, SmnCapProvider smn) => Analyze(id,body,c,s,r,gate,clock,smn))
     .RequireRateLimiting("analysis");
 app.MapGet("/api/v1/trips", () => Results.Problem(statusCode: 403, title: "Guardado anónimo disponible en este dispositivo; cuentas no habilitadas."));
+app.MapPost("/api/v1/trips/{id:guid}/fuel-plan", async (Guid id, JsonElement body, HttpContext c, IStore store, RoutingProvider provider, SemaphoreSlim gate, TimeProvider clock, SmnCapProvider smn, EnergyProvider energy, VialidadProvider vialidad) =>
+{
+    using var deadline=CancellationTokenSource.CreateLinkedTokenSource(c.RequestAborted);
+    deadline.CancelAfter(TimeSpan.FromSeconds(35)); var ct=deadline.Token;
+    var key=c.Request.Headers["Idempotency-Key"].ToString();
+    if(!Regex.IsMatch(key,"^[a-zA-Z0-9_-]{8,100}$")) throw new DomainException("invalid_idempotency_key","Idempotency-Key es obligatorio.",400);
+    key=id+":fuel:"+key;
+    var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body.GetRawText())));
+    var request=body.Deserialize<FuelPlanRequest>(new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? throw new JsonException();
+    var owner=Owner(c);
+    await gate.WaitAsync(ct);
+    try
+    {
+        var now=clock.GetUtcNow();
+        var replay=await store.GetReplay(owner,key,now,ct);
+        if(replay is not null)
+        {
+            if(replay.Hash!=hash) throw new DomainException("idempotency_conflict","La clave ya fue usada para otra solicitud.",409);
+            return Results.Json(replay.Assessment,statusCode:201);
+        }
+        var report=await store.Get(owner,id,now,ct);
+        if(report is null) return Results.NotFound();
+        if(report.Version!=request.ExpectedVersion) throw new DomainException("version_conflict","El informe cambió. Abrí su versión actual antes de continuar.",409);
+        if(request.Accept)
+        {
+            var plan=report.FuelPlan;
+            if(plan is null || plan.Status!="ready" || plan.Route is null || now-plan.ComputedAt>TimeSpan.FromMinutes(10))
+                throw new DomainException("fuel_plan_expired","Calculá una propuesta nueva antes de confirmarla.",409);
+            var input=report.Input with { Pauses=[..report.Input.Pauses,..plan.Stops.Select(s=>new Pause(s.DistanceM,s.PauseSeconds))] };
+            InputValidator.Validate(input,now);
+            report=AssessmentEngine.Build(id,report.Version+1,input,plan.Route,now);
+            report=WeatherEngine.Apply(report,CapParser.Active(smn.Snapshot.Alerts,now),smn.Coverage(now));
+            report=vialidad.Apply(energy.Apply(report,now),now) with { FuelPlan=plan with { Status="accepted" } };
+        }
+        else
+        {
+            InputValidator.Validate(report.Input,now);
+            var plan=await provider.FuelPlan(report,now,ct);
+            report=report with { Version=report.Version+1,FuelPlan=plan };
+        }
+        await store.Commit(owner,key,hash,report,now.AddHours(24),ct);
+        return Results.Json(report,statusCode:201);
+    }
+    finally { gate.Release(); }
+}).RequireRateLimiting("analysis");
 app.MapFallbackToFile("index.html");
 app.Run();
 
@@ -173,6 +229,7 @@ static async Task<IResult> Analyze(Guid? id, JsonElement body, HttpContext c, IS
         var assessment = AssessmentEngine.Build(id ?? Guid.NewGuid(), (previous?.Version ?? 0)+1,input,route,now);
         if (!route.Synthetic) assessment = WeatherEngine.Apply(assessment,CapParser.Active(smn.Snapshot.Alerts,now),smn.Coverage(now));
         assessment=c.RequestServices.GetRequiredService<EnergyProvider>().Apply(assessment,now);
+        assessment=c.RequestServices.GetRequiredService<VialidadProvider>().Apply(assessment,now);
         await store.Commit(owner,key,hash,assessment,now.AddHours(24),ct);
         return Results.Created($"/api/v1/trips/{assessment.TripId}",assessment);
     }
@@ -180,6 +237,19 @@ static async Task<IResult> Analyze(Guid? id, JsonElement body, HttpContext c, IS
 }
 
 public partial class Program { }
+sealed class VialidadWorker(VialidadProvider provider,ILogger<VialidadWorker> logger) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        try { await provider.Restore(ct); }
+        catch(Exception) when(!ct.IsCancellationRequested) { logger.LogWarning("Vialidad snapshot restore unavailable."); }
+        using var timer=new PeriodicTimer(TimeSpan.FromHours(1));
+        do {
+            try { await provider.Refresh(ct); }
+            catch(Exception) when(!ct.IsCancellationRequested) { logger.LogWarning("Vialidad refresh failed. Previous snapshot retained."); }
+        } while(await timer.WaitForNextTickAsync(ct));
+    }
+}
 sealed class EnergyWorker(EnergyProvider provider,ILogger<EnergyWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

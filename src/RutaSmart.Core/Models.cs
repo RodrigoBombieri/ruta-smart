@@ -8,7 +8,22 @@ public sealed record TripInput(Location Origin, Location Destination, DateTimeOf
     string TimeZone, Vehicle Vehicle, decimal InitialLitres, decimal ReserveLitres,
     decimal? ManualPriceArsPerLitre, Pause[] Pauses, bool Demo = false);
 public sealed record RouteData(string Provider, bool Synthetic, Point[] Geometry, double DistanceM,
-    double DurationSeconds, string Attribution, string[] Limitations);
+    double DurationSeconds, string Attribution, string[] Limitations)
+{
+    public RouteRoad[] Roads { get; init; } = [];
+    public bool CrossesInternationalBorder { get; init; }
+    public RouteLeg[] Legs { get; init; } = [];
+}
+public sealed record RouteLeg(double DistanceM, double DurationSeconds);
+public sealed record FuelPlanRequest(int ExpectedVersion, bool Accept);
+public sealed record FuelStop(FuelStation Station, double DistanceM, decimal ArrivalLitres,
+    decimal PurchaseLitres, decimal DepartureLitres, DateTimeOffset ArrivalAt, int PauseSeconds);
+public sealed record FuelPlan(string Status, string Message, DateTimeOffset ComputedAt, RouteData? Route,
+    FuelStop[] Stops, double ExtraDistanceM, double ExtraSeconds, decimal PurchaseLitres);
+public sealed record RouteRoad(string Reference, string Province, double DistanceFromM, double DistanceToM);
+public sealed record RoadNotice(string Id, string Province, string Road, string Section, string Status,
+    string Surface, string Description, DateTimeOffset? UpdatedAt, string Url);
+public sealed record RoadMatch(RoadNotice Notice, string Confidence, double DistanceFromM, double DistanceToM, bool Stale);
 public sealed record Passage(double DistanceM, DateTimeOffset At, DateTimeOffset Earliest, DateTimeOffset Latest);
 public sealed record FuelResult(decimal ConsumedLitres, decimal InitialRangeKm, decimal MinimumPurchaseLitres,
     decimal? ConsumptionCostArs, decimal? MinimumPurchaseCostArs, string PriceOrigin, string PlanStatus);
@@ -22,6 +37,8 @@ public sealed record Assessment(Guid TripId, int Version, string RuleVersion, Da
 {
     public WeatherMatch[] WeatherAlerts { get; init; } = [];
     public StationCandidate[] Stations { get; init; } = [];
+    public RoadMatch[] RoadNotices { get; init; } = [];
+    public FuelPlan? FuelPlan { get; init; }
 }
 public sealed record StationPrice(decimal AmountArsPerLitre, DateTimeOffset DeclaredAt, string Schedule);
 public sealed record FuelStation(string Id, string Name, string Brand, string Address, Point Point,

@@ -48,7 +48,7 @@ class RutaApi {
       final response = await client
           .send(req)
           .then(http.Response.fromStream)
-          .timeout(const Duration(seconds: 20));
+          .timeout(Duration(seconds: path.endsWith('/fuel-plan') ? 45 : 20));
       if (response.statusCode == 401 && retry) {
         _token = null;
         return request(
@@ -101,6 +101,14 @@ class RutaApi {
               )
               as List)
           .cast<Json>();
+  Future<Json> fuelPlan(String id, int version, bool accept) async =>
+      await request(
+            'POST',
+            '/trips/$id/fuel-plan',
+            body: {'expectedVersion': version, 'accept': accept},
+            key: 'fuel_${version}_${accept ? 'accept' : 'calculate'}',
+          )
+          as Json;
   Future<Json> status() async =>
       await request('GET', '/sources/status', auth: false) as Json;
   Future<void> delete(String id) async {

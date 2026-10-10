@@ -41,6 +41,6 @@ Salida: `build/app/outputs/flutter-apk/app-debug.apk`. `10.0.2.2` apunta al host
 
 ## Contenedor
 
-Compilar web antes de construir la imagen: el Dockerfile copia `mobile/rutasmart/build/web`. El Compose base ejecuta Production y deshabilita demos; el override dev habilita el piloto local. No hay despliegue público realizado.
+Compilar web antes de construir la imagen: el Dockerfile copia `mobile/rutasmart/build/web`. El Compose base ejecuta Production y deshabilita demos; el override dev habilita el routing nacional de prueba local. No hay despliegue público realizado.
 
 Una sola instancia de API. Antes de publicar: HTTPS, proveedor de routing apto, firma Android, backups probados, operación de fuentes y beta. No usar el servidor demo OSRM como infraestructura comercial.

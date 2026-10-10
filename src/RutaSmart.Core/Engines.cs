@@ -65,6 +65,16 @@ public static class TimelineEngine
     public static Passage At(TripInput input, RouteData route, double distanceM, bool beforePause = false)
     {
         var driving = route.DurationSeconds * distanceM / route.DistanceM;
+        if(route.Legs.Length>0)
+        {
+            driving=0; var remaining=distanceM;
+            foreach(var leg in route.Legs)
+            {
+                driving+=leg.DistanceM>0 ? leg.DurationSeconds*Math.Clamp(remaining/leg.DistanceM,0,1) : 0;
+                remaining-=leg.DistanceM;
+                if(remaining<=0) break;
+            }
+        }
         var pauses = input.Pauses.Where(p => beforePause ? p.DistanceM < distanceM : p.DistanceM <= distanceM).Sum(p => p.DurationSeconds);
         var at = input.DepartureAt.AddSeconds(driving + pauses);
         var uncertainty = Math.Max(900, driving * .2);
@@ -99,8 +109,8 @@ public static class AssessmentEngine
     public static Assessment Build(Guid id, int version, TripInput input, RouteData route, DateTimeOffset now)
     {
         var coverage = new[] {
-            new Coverage("weather", "unavailable", "Alertas SMN: integración autorizada pendiente."),
-            new Coverage("roads", "unavailable", "Vialidad: cobertura y acceso pendientes de validación."),
+            new Coverage("weather", "unavailable", "Sin alertas meteorológicas aplicadas a este recorrido."),
+            new Coverage("roads", "unavailable", "Sin partes viales aplicados a este recorrido."),
             new Coverage("stations", "unavailable", "Inventario de estaciones no habilitado; no hay plan de carga validado."),
             new Coverage("prices", input.ManualPriceArsPerLitre.HasValue ? "partial" : "unavailable", "Precio manual de referencia; no es un precio de surtidor verificado.") };
         Reason[] reasons = route.Synthetic ? [new("synthetic_route", "routing", "information",

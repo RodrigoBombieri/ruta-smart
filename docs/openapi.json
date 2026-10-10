@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "RutaSmart Argentina",
-    "version": "0.1.0",
-    "description": "Operaciones implementadas. Routing piloto y cobertura parcial; sin cuentas sincronizadas."
+    "version": "0.2.0",
+    "description": "Routing nacional de prueba, Vialidad parcial y plan de carga por carretera; sin cuentas sincronizadas."
   },
   "servers": [
     {
@@ -356,6 +356,66 @@
           }
         }
       }
+    },
+    "/api/v1/trips/{id}/fuel-plan": {
+      "post": {
+        "operationId": "fuelPlan",
+        "responses": {
+          "201": {
+            "description": "Resultado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assessment"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error de validación, sesión, cuota o dependencia",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe o no pertenece a la sesión"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{8,100}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FuelPlanRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -530,6 +590,21 @@
             "items": {
               "type": "string"
             }
+          },
+          "roads": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteRoad"
+            }
+          },
+          "crossesInternationalBorder": {
+            "type": "boolean"
+          },
+          "legs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteLeg"
+            }
           }
         },
         "required": [
@@ -539,7 +614,225 @@
           "distanceM",
           "durationSeconds",
           "attribution",
-          "limitations"
+          "limitations",
+          "roads",
+          "crossesInternationalBorder",
+          "legs"
+        ]
+      },
+      "RouteLeg": {
+        "type": "object",
+        "properties": {
+          "distanceM": {
+            "type": "number"
+          },
+          "durationSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "distanceM",
+          "durationSeconds"
+        ]
+      },
+      "FuelPlanRequest": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer"
+          },
+          "accept": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "accept"
+        ]
+      },
+      "FuelStop": {
+        "type": "object",
+        "properties": {
+          "station": {
+            "$ref": "#/components/schemas/FuelStation"
+          },
+          "distanceM": {
+            "type": "number"
+          },
+          "arrivalLitres": {
+            "type": "number"
+          },
+          "purchaseLitres": {
+            "type": "number"
+          },
+          "departureLitres": {
+            "type": "number"
+          },
+          "arrivalAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pauseSeconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "station",
+          "distanceM",
+          "arrivalLitres",
+          "purchaseLitres",
+          "departureLitres",
+          "arrivalAt",
+          "pauseSeconds"
+        ]
+      },
+      "FuelPlan": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "computedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "route": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RouteData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FuelStop"
+            }
+          },
+          "extraDistanceM": {
+            "type": "number"
+          },
+          "extraSeconds": {
+            "type": "number"
+          },
+          "purchaseLitres": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "message",
+          "computedAt",
+          "stops",
+          "extraDistanceM",
+          "extraSeconds",
+          "purchaseLitres"
+        ]
+      },
+      "RouteRoad": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "province": {
+            "type": "string"
+          },
+          "distanceFromM": {
+            "type": "number"
+          },
+          "distanceToM": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "reference",
+          "province",
+          "distanceFromM",
+          "distanceToM"
+        ]
+      },
+      "RoadNotice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "province": {
+            "type": "string"
+          },
+          "road": {
+            "type": "string"
+          },
+          "section": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "surface": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "province",
+          "road",
+          "section",
+          "status",
+          "surface",
+          "description",
+          "url"
+        ]
+      },
+      "RoadMatch": {
+        "type": "object",
+        "properties": {
+          "notice": {
+            "$ref": "#/components/schemas/RoadNotice"
+          },
+          "confidence": {
+            "type": "string"
+          },
+          "distanceFromM": {
+            "type": "number"
+          },
+          "distanceToM": {
+            "type": "number"
+          },
+          "stale": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "notice",
+          "confidence",
+          "distanceFromM",
+          "distanceToM",
+          "stale"
         ]
       },
       "Passage": {
@@ -772,6 +1065,22 @@
             "items": {
               "$ref": "#/components/schemas/StationCandidate"
             }
+          },
+          "roadNotices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoadMatch"
+            }
+          },
+          "fuelPlan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FuelPlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -788,7 +1097,9 @@
           "coverage",
           "reasons",
           "weatherAlerts",
-          "stations"
+          "stations",
+          "roadNotices",
+          "fuelPlan"
         ]
       },
       "StationPrice": {
@@ -1050,6 +1361,26 @@
           },
           "stations": {
             "type": "string"
+          },
+          "roadsDetail": {
+            "type": "string"
+          },
+          "roadsCount": {
+            "type": "integer"
+          },
+          "roadsUpdatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "roadsRejected": {
+            "type": "integer"
           },
           "stationsDetail": {
             "type": "string"

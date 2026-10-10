@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="mobile/rutasmart/web/brand.svg" width="96" alt="Logo de RutaSmart Argentina" />
+
 # RutaSmart Argentina
 
 ### Un poco de previsión. Mucho camino.
@@ -17,8 +19,8 @@ Planificá tu recorrido, consultá alertas y estimá combustible antes de salir.
 ## Tu viaje, con contexto
 
 - **Planificá:** origen, destino, salida, vehículo y pausas.
-- **Explorá:** ruta real, alertas SMN y estaciones cercanas.
-- **Calculá:** consumo, autonomía, reserva y costo de referencia.
+- **Explorá:** rutas en Argentina, partes de Vialidad y alertas SMN.
+- **Calculá:** consumo, reserva y paradas de carga con distancias por carretera.
 - **Guardá:** informes en tu dispositivo; abrí Google Maps o Waze cuando quieras navegar.
 
 Sin cuenta obligatoria. Cada informe muestra sus fuentes, fecha y límites.
@@ -26,6 +28,10 @@ Sin cuenta obligatoria. Cada informe muestra sus fuentes, fecha y límites.
 ## Así se ve
 
 ![Informe real Buenos Aires–Rosario](docs/screenshots/report-desktop.png)
+
+![Plan de carga por carretera confirmado](docs/screenshots/fuel-plan-desktop.png)
+
+![Fuentes públicas con Vialidad integrado](docs/screenshots/sources-desktop.png)
 
 <p align="center">
   <img src="docs/screenshots/planner-phone.png" width="280" alt="Planificación en pantalla de celular" />
@@ -49,9 +55,9 @@ Para conservar los datos en PostgreSQL, o compilar Android, consultá [ejecució
 
 ## Estado actual
 
-**Versión local funcional; MVP todavía incompleto.** El routing gratuito de prueba cubre Buenos Aires–Rosario y alrededores. SMN y Energía tienen cobertura parcial. Faltan estado vial integrado, routing nacional validado y un plan de carga con accesos por carretera. No hay cuentas sincronizadas ni despliegue productivo.
+**Versión local funcional.** Routing nacional probado en ocho recorridos regionales; Vialidad, SMN y Energía integrados con cobertura parcial. El plan de carga propone paradas, comprueba la reserva y recalcula el informe al confirmarlo. OSRM público se usa para pruebas no comerciales. No hay cuentas sincronizadas ni despliegue productivo.
 
-Una ruta calculada no implica condiciones favorables. Las estaciones son candidatas; su acceso y stock no están verificados.
+Una ruta calculada no implica condiciones favorables. Vialidad se vincula por ruta nacional y provincia, sin localizar el corte exacto. El acceso cartográfico a una estación no garantiza entrada al surtidor, horario ni stock.
 
 ## Desarrollo
 
@@ -76,4 +82,4 @@ flutter test
 | Configuración y builds | [Ejecución](DEPLOYMENT.md) |
 | Privacidad y controles | [Seguridad](SECURITY.md) |
 
-Cartografía: © OpenStreetMap contributors. Ruta: OSRM / FOSSGIS. Avisos: SMN. Estaciones y precios declarados: Secretaría de Energía. [Detalle de atribuciones](DATA-SOURCES.md).
+Cartografía: © OpenStreetMap contributors y GeoRef (CC BY 4.0). Ruta: OSRM / FOSSGIS. Avisos: SMN y Vialidad Nacional. Estaciones y precios declarados: Secretaría de Energía. [Detalle de atribuciones](DATA-SOURCES.md).

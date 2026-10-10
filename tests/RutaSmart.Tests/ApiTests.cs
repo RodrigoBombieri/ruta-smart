@@ -14,6 +14,24 @@ public class TestApp : WebApplicationFactory<Program>
 }
 public class ApiTests
 {
+    [Fact] public async Task FuelPlanEnforcesOwnershipVersionAndIdempotency()
+    {
+        await using var app=new TestApp(); using var a=await Session(app); using var b=await Session(app);
+        var report=(await (await Analyze(a,DomainTests.Input())).Content.ReadFromJsonAsync<Assessment>())!;
+        async Task<HttpResponseMessage> Plan(HttpClient client,int version,bool accept,string key)
+        {
+            using var request=new HttpRequestMessage(HttpMethod.Post,$"/api/v1/trips/{report.TripId}/fuel-plan") { Content=JsonContent.Create(new FuelPlanRequest(version,accept)) };
+            request.Headers.Add("Idempotency-Key",key); return await client.SendAsync(request);
+        }
+        Assert.Equal(HttpStatusCode.NotFound,(await Plan(b,1,false,"owner-check")).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,(await Plan(a,4,false,"version-check")).StatusCode);
+        var first=await Plan(a,1,false,"plan-replay");
+        Assert.Equal(HttpStatusCode.Created,first.StatusCode);
+        var json=await first.Content.ReadAsStringAsync();
+        Assert.Equal("unavailable",JsonDocument.Parse(json).RootElement.GetProperty("fuelPlan").GetProperty("status").GetString());
+        Assert.Equal(json,await (await Plan(a,1,false,"plan-replay")).Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.Conflict,(await Plan(a,2,true,"accept-missing")).StatusCode);
+    }
     static async Task<HttpClient> Session(TestApp app)
     {
         var client=app.CreateClient();

@@ -28,10 +28,12 @@ Requiere Chrome instalado. El recorrido usa fuentes reales y puede fallar si un 
 - CSV de precios, antigüedad y estaciones repartidas por el viaje.
 - Propiedad, idempotencia, versiones, borrado y expiración; persistencia PostGIS real.
 - Formularios móviles, vehículo, informes y almacenamiento local.
-- Chrome: análisis Buenos Aires–Rosario, informe, guardado y vistas responsive.
+- Chrome: análisis Buenos Aires–Rosario, plan de carga y confirmación, guardado y vistas responsive.
+- `node scripts/check-national-routes.mjs`: ocho recorridos regionales reales.
+- `node scripts/check-fuel-plan.mjs`: reserva por etapa y confirmación Buenos Aires–Córdoba.
 
 ## Última revisión
 
-Build web y APK debug exitosos; Flutter analyze sin hallazgos y 5 tests aprobados. El recorrido real en Chrome devolvió 302,143 km, 20 estaciones candidatas y estado de información insuficiente. La suite .NET y las capturas finales se registran en [verificación](docs/research/VERIFICATION.md).
+Build web y APK debug exitosos; Flutter analyze sin hallazgos y 5 tests aprobados. El recorrido real incluye Vialidad y el flujo de propuesta/confirmación de cargas. La suite .NET y las capturas finales se registran en [verificación](docs/research/VERIFICATION.md).
 
-No hay prueba de conducción, beta de usuarios ni validación nacional. La APK fue compilada; falta prueba en dispositivo/emulador. GitHub Actions valida .NET/PostGIS y Flutter sin fuentes externas; no se afirma una ejecución remota hasta verla en GitHub.
+Las pruebas regionales no acreditan todas las carreteras. No hay prueba de conducción ni beta de usuarios. La APK fue compilada; falta prueba en dispositivo/emulador. GitHub Actions valida .NET/PostGIS y Flutter sin fuentes externas; no se afirma una ejecución remota hasta verla en GitHub.

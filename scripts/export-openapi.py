@@ -38,14 +38,18 @@ for name, parameters in re.findall(r"public sealed record (\w+)\((.*?)\)(?:;|\s*
         if default is None and not type_name.endswith("?"):
             required.append(field)
     schemas[name] = {"type": "object", "properties": properties, "required": required}
-for field, type_name in [("weatherAlerts", "WeatherMatch[]"), ("stations", "StationCandidate[]")]:
+for field, type_name in [("weatherAlerts", "WeatherMatch[]"), ("stations", "StationCandidate[]"), ("roadNotices", "RoadMatch[]"), ("fuelPlan", "FuelPlan?")]:
     schemas["Assessment"]["properties"][field] = schema(type_name)
     schemas["Assessment"]["required"].append(field)
+for field, type_name in [("roads", "RouteRoad[]"), ("crossesInternationalBorder", "bool"), ("legs", "RouteLeg[]")]:
+    schemas["RouteData"]["properties"][field] = schema(type_name)
+    schemas["RouteData"]["required"].append(field)
 schemas["Session"] = {"type": "object", "properties": {"token": schema("string"), "expiresAt": schema("DateTimeOffset")}, "required": ["token", "expiresAt"]}
 schemas["Problem"] = {"type": "object", "properties": {key: schema(kind) for key, kind in {"type":"string","title":"string","status":"int","code":"string","correlationId":"string"}.items()}, "required": ["title", "status"]}
 schemas["SourceStatus"] = {"type": "object", "properties": {key: schema(kind) for key, kind in {
     "routing":"string", "weather":"string", "weatherDetail":"string", "weatherLastSuccessAt":"DateTimeOffset?",
     "weatherRecords":"int", "weatherRejected":"int", "roads":"string", "stations":"string",
+    "roadsDetail":"string", "roadsCount":"int", "roadsUpdatedAt":"DateTimeOffset?", "roadsRejected":"int",
     "stationsDetail":"string", "stationsCount":"int", "stationsUpdatedAt":"DateTimeOffset?",
     "prices":"string", "accounts":"string", "storage":"string", "demoAvailable":"bool",
 }.items()}}
@@ -87,10 +91,14 @@ paths = {
 }
 for method in ("get", "delete"):
     paths["/api/v1/trips/{id}"][method]["responses"]["404"] = response("No existe o no pertenece a la sesión")
+fuel_operation = operation("fuelPlan", 201, ref("Assessment"), [trip_id, idem])
+fuel_operation["requestBody"] = {"required": True, "content": {"application/json": {"schema": ref("FuelPlanRequest")}}}
+fuel_operation["responses"]["404"] = response("No existe o no pertenece a la sesión")
+paths["/api/v1/trips/{id}/fuel-plan"] = {"post": fuel_operation}
 paths["/api/v1/trips/{id}/analyses"]["post"]["responses"]["404"] = response("No existe o no pertenece a la sesión")
 spec = {
     "openapi": "3.1.0",
-    "info": {"title": "RutaSmart Argentina", "version": "0.1.0", "description": "Operaciones implementadas. Routing piloto y cobertura parcial; sin cuentas sincronizadas."},
+    "info": {"title": "RutaSmart Argentina", "version": "0.2.0", "description": "Routing nacional de prueba, Vialidad parcial y plan de carga por carretera; sin cuentas sincronizadas."},
     "servers": [{"url": "http://localhost:5080", "description": "Desarrollo local"}],
     "security": [{"session": []}], "paths": paths,
     "components": {"securitySchemes": {"session": {"type":"http","scheme":"bearer","bearerFormat":"opaque"}}, "schemas": schemas},

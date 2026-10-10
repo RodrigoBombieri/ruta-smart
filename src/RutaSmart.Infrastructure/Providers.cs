@@ -7,7 +7,7 @@ namespace RutaSmart.Infrastructure;
 
 public sealed record RoutingOptions(bool Enabled, string ApiKey, string CoverageWkt, bool AllowDemo, string Provider = "ors");
 
-public sealed class RoutingProvider(HttpClient http, RoutingOptions options)
+public sealed partial class RoutingProvider(HttpClient http, RoutingOptions options)
 {
     static readonly SemaphoreSlim PublicGate = new(1,1);
     static DateTimeOffset lastPublicRequest;
@@ -55,20 +55,20 @@ public sealed class RoutingProvider(HttpClient http, RoutingOptions options)
             if (!double.IsFinite(distance) || !double.IsFinite(duration) || distance is <= 0 or > 8000000 || duration is <= 0 or > 604800)
                 throw new JsonException();
             return new("openrouteservice", false, points, distance, duration, "© openrouteservice · © OpenStreetMap contributors",
-                ["ETA proporcional a la distancia: baja confianza, sin tráfico en vivo.", "La navegación externa puede elegir otra ruta.", "Estado vial no habilitado; alertas SMN con cobertura parcial."]);
+                ["ETA proporcional a la distancia: baja confianza, sin tráfico en vivo.", "La navegación externa puede elegir otra ruta.", "Este adaptador no entrega referencias RN para vincular los partes de Vialidad; alertas SMN con cobertura parcial."]);
         }
         catch (Exception e) when (e is JsonException or KeyNotFoundException or IndexOutOfRangeException or InvalidOperationException)
         { throw new DomainException("invalid_route_response", "El proveedor devolvió una ruta no interpretable.", 503); }
     }
-    async Task<RouteData> PublicOsrm(TripInput input,CancellationToken ct)
+    async Task<RouteData> PublicOsrm(TripInput input,CancellationToken ct, Point[]? via = null)
     {
-        // Small inland pilot corridor; it does not imply national coverage or road-state knowledge.
-        const string pilot="POLYGON ((-61 -35,-58.35 -35,-58.35 -32.5,-61 -32.5,-61 -35))";
-        var area=new WKTReader().Read(pilot);
+        var geography=ProvinceCatalog.Shared;
         foreach (var location in new[] { input.Origin,input.Destination })
-            if (!area.Covers(new NetTopologySuite.Geometries.Point(location.Point.Longitude,location.Point.Latitude)))
-                throw new DomainException("outside_pilot", "El routing público de prueba está limitado al corredor Buenos Aires–Rosario y alrededores. Para otros recorridos configurá ORS o usá demostración sintética.");
-        var url=FormattableString.Invariant($"https://router.project-osrm.org/route/v1/driving/{input.Origin.Point.Longitude},{input.Origin.Point.Latitude};{input.Destination.Point.Longitude},{input.Destination.Point.Latitude}?overview=full&geometries=geojson&steps=false");
+            if (!geography.Contains(location.Point))
+                throw new DomainException("outside_argentina", "Confirmá origen y destino dentro de Argentina. Los tramos internacionales intermedios se informan por separado.");
+        Point[] locations=[input.Origin.Point,..via ?? [],input.Destination.Point];
+        var coordinatesText=string.Join(";",locations.Select(p=>FormattableString.Invariant($"{p.Longitude},{p.Latitude}")));
+        var url=$"https://router.project-osrm.org/route/v1/driving/{coordinatesText}?overview=full&geometries=geojson&steps=true&continue_straight=false";
         await PublicGate.WaitAsync(ct);
         HttpResponseMessage response;
         try
@@ -86,20 +86,49 @@ public sealed class RoutingProvider(HttpClient http, RoutingOptions options)
             using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
             if (json.RootElement.GetProperty("code").GetString()!="Ok") throw new DomainException("no_route","No se encontró una ruta utilizable.",503);
             var route=json.RootElement.GetProperty("routes")[0];
+            var waypoints=json.RootElement.GetProperty("waypoints");
+            if(waypoints.GetArrayLength()!=locations.Length) throw new JsonException();
+            for(var i=0;i<locations.Length;i++)
+            {
+                var snap=waypoints[i].GetProperty("location");
+                if(Geo.Distance(locations[i],new Point(snap[1].GetDouble(),snap[0].GetDouble()))>(i==0 || i==locations.Length-1 ? 2000 : 150))
+                    throw new DomainException("station_access_uncertain","El acceso cartográfico a una parada queda a más de 150 m de la estación.");
+            }
             var coordinates=route.GetProperty("geometry").GetProperty("coordinates");
             if (coordinates.GetArrayLength() is < 2 or > 100000) throw new DomainException("invalid_route","Geometría de ruta inválida.",503);
             var points=coordinates.EnumerateArray().Select(p=>new Point(p[1].GetDouble(),p[0].GetDouble())).ToArray();
-            if (!area.Covers(Geo.Line(points))) throw new DomainException("route_outside_coverage","La ruta sale del corredor piloto.");
+            if(points.Any(p=>!double.IsFinite(p.Latitude) || !double.IsFinite(p.Longitude) || p.Latitude is < -90 or >90 || p.Longitude is < -180 or >180))
+                throw new DomainException("invalid_route","Coordenadas del proveedor inválidas.",503);
             if (Geo.Distance(points[0],input.Origin.Point)>2000 || Geo.Distance(points[^1],input.Destination.Point)>2000)
                 throw new DomainException("route_snap_too_far","El acceso a la ruta está demasiado lejos del punto confirmado.");
             var distance=route.GetProperty("distance").GetDouble(); var duration=route.GetProperty("duration").GetDouble();
-            if (!double.IsFinite(distance) || !double.IsFinite(duration) || distance is <=0 or >1000000 || duration is <=0 or >172800)
+            if (!double.IsFinite(distance) || !double.IsFinite(duration) || distance is <=0 or >8000000 || duration is <=0 or >604800)
                 throw new DomainException("invalid_route","Distancia o duración del proveedor inválida.",503);
-            return new("osrm_public",false,points,distance,duration,"OSRM / FOSSGIS · © OpenStreetMap contributors (ODbL)",
+            var crossesBorder=geography.CrossesBorder(points);
+            return new RouteData("osrm_public",false,points,distance,duration,"OSRM / FOSSGIS · © OpenStreetMap contributors (ODbL)",
                 ["Servicio público de prueba, solo uso no comercial. Sin garantía de disponibilidad ni actualización.",
-                 "Cobertura piloto Buenos Aires–Rosario y alrededores, no nacional.",
-                 "ETA proporcional a la distancia, baja confianza. No incluye tráfico en vivo.","La navegación externa puede elegir otra ruta."]);
+                 crossesBorder ? "El trazado incluye tránsito internacional o puntos fuera de la cartografía argentina. Verificá fronteras, documentación y eventuales ferris; no están validados." : "Routing habilitado en Argentina; disponibilidad sujeta al grafo vial del proveedor.",
+                 "ETA estimada, baja confianza. No incluye tráfico en vivo.","La navegación externa puede elegir otra ruta."]) { Roads=ReadRoads(route),CrossesInternationalBorder=crossesBorder,
+                 Legs=route.GetProperty("legs").EnumerateArray().Select(l=>new RouteLeg(l.GetProperty("distance").GetDouble(),l.GetProperty("duration").GetDouble())).ToArray() };
         }
+    }
+    public static RouteRoad[] ReadRoads(JsonElement route)
+    {
+        var result=new List<RouteRoad>(); var offset=0d;
+        if(!route.TryGetProperty("legs",out var legs)) return [];
+        foreach(var leg in legs.EnumerateArray())
+        foreach(var step in leg.GetProperty("steps").EnumerateArray())
+        {
+            var distance=step.GetProperty("distance").GetDouble();
+            if(!double.IsFinite(distance) || distance<0) throw new JsonException("Invalid step distance");
+            if(step.TryGetProperty("ref",out var reference) && reference.ValueKind==JsonValueKind.String)
+            {
+                var points=step.GetProperty("geometry").GetProperty("coordinates").EnumerateArray().Select(p=>new Point(p[1].GetDouble(),p[0].GetDouble())).ToArray();
+                result.AddRange(ProvinceCatalog.Shared.LocateRoad(reference.GetString()!,points,offset,distance));
+            }
+            offset+=distance;
+        }
+        return result.ToArray();
     }
 }
 
